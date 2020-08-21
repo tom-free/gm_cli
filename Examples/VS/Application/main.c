@@ -18,12 +18,7 @@
 #include "conio.h"
 #include "windows.h"
 
-int test(int argc, char* argv[])
-{
-    printf_s("test\r\n");
-    return 0;
-}
-GM_CLI_CMD_EXPORT(test, "test", test);
+
 
 /*******************************************************************************
 ** 函数名称：main
@@ -42,7 +37,9 @@ int main(int argc, char* argv[])
     /* 注册输出驱动 */
     GM_CLI_RegOutCharCallBack((GM_CLI_OUT_CHAR_CB)_putch);
     /* 设置提示符 */
-    GM_CLI_SetCommandNotice("VS CLI Simulator > ");
+    GM_CLI_SetCommandNotice("[VS CLI Simulator] > ");
+    /* 启动CLI */
+    GM_CLI_Start();
 
     for (;;)
     {

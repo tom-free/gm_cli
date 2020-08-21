@@ -27,6 +27,10 @@
 
 /* 一行的最大输入字符数，包括一个\0，实际需要减一 */
 #define GM_CLI_LINE_CHAR_MAX    1024u
+/* 最长的输入命令参数总数 */
+#define GM_CLI_CMD_ARGS_NUM_MAX 10u
+/* 打印函数buf大小 */
+#define GM_CLI_PRINTF_BUF_MAX   1024u
 
 /* 命令结构 */
 typedef struct
@@ -49,7 +53,7 @@ typedef struct
 #elif defined (__IAR_SYSTEMS_ICC__) || defined(__ICCARM__)  /* IAR */
 /* 导出命令 */
 #define GM_CLI_CMD_EXPORT(cmd_name, cmd_usage, cmd_cb)                         \
-        _Pragma("location = \".gm_cli_cmd_section\"")                              \
+        _Pragma("location = \".gm_cli_cmd_section\"")                          \
             static __root const GM_CLI_CMD gm_cli_cmd_##cmd_name =             \
             {                                                                  \
                 .name    = #cmd_name,                                          \
@@ -98,6 +102,47 @@ void GM_CLI_RegOutCharCallBack(void(*pf_outchar)(const char));
 ** 函数备注：
 *******************************************************************************/
 void GM_CLI_SetCommandNotice(const char* const p_notice);
+
+/*******************************************************************************
+** 函数名称：GM_CLI_Start
+** 函数作用：启动CLI
+** 输入参数：无
+** 输出参数：无
+** 使用范例：GM_CLI_Start();
+** 函数备注：
+*******************************************************************************/
+void GM_CLI_Start(void);
+
+/*******************************************************************************
+** 函数名称：GM_CLI_PutChar
+** 函数作用：打印字符
+** 输入参数：ch - 字符
+** 输出参数：无
+** 使用范例：GM_CLI_PutChar();
+** 函数备注：
+*******************************************************************************/
+void GM_CLI_PutChar(const char ch);
+
+/*******************************************************************************
+** 函数名称：GM_CLI_PutString
+** 函数作用：打印字符串
+** 输入参数：str
+** 输出参数：无
+** 使用范例：GM_CLI_PutString();
+** 函数备注：
+*******************************************************************************/
+void GM_CLI_PutString(const char* const str);
+
+/*******************************************************************************
+** 函数名称：GM_CLI_Printf
+** 函数作用：打印函数
+** 输入参数：fmt - 格式化字符串
+**           ... - 可变参数
+** 输出参数：无
+** 使用范例：GM_CLI_Printf("%d\r\n", 123);
+** 函数备注：
+*******************************************************************************/
+void GM_CLI_Printf(const char* const fmt, ...);
 
 /*******************************************************************************
 ** 函数名称：GM_CLI_ParseOneChar
