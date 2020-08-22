@@ -4,7 +4,11 @@
 
 "-d" 
 
-"sim" 
+"stlink" 
+
+"--mcuname" 
+
+"STM8L052R8" 
 
 
 

@@ -52,14 +52,22 @@ typedef enum
 typedef struct
 {
     char                 line[GM_CLI_LINE_CHAR_MAX];    /* 一行字符串存储 */
-    int                  input_count;                   /* 输入的字符数量 */
-    int                  input_cusor;                   /* 输入的光标位置 */
+    unsigned int         input_count;                   /* 输入的字符数量 */
+    unsigned int         input_cusor;                   /* 输入的光标位置 */
     GM_CLI_INPUT_STATUS  input_status;                  /* 当前输入的状态 */
     GM_CLI_OUT_CHAR_CB   pf_outchar;                    /* 输出字符回调函数 */
     const int*           p_cmd_start;                   /* 命令存储区起始指针 */
     const int*           p_cmd_end;                     /* 命令存储区结束指针 */
     const char*          p_cmd_notice;                  /* 命令提示符 */
-    char                 printf_str[GM_CLI_PRINTF_BUF_MAX]; /* 打印函数使用的buf */
+    /* 打印函数使用的字符串缓存 */
+    char                 printf_str[GM_CLI_PRINTF_BUF_MAX];
+    /* 备份字符串，用于翻历史记录时保存当前 */
+    char                 backup_str[GM_CLI_LINE_CHAR_MAX];
+    char                 history_str[GM_CLI_HISTORY_LINE_MAX][GM_CLI_LINE_CHAR_MAX];
+    unsigned int         history_total;                 /* 历史总记录条数 */
+    unsigned int         history_index;                 /* 历史存储索引 */
+    unsigned int         history_inquire_index;         /* 历史查询索引 */
+    unsigned int         history_inquire_count;         /* 历史查询数量计数器 */
 } GM_CLI;
 
 /* CLI控制 */
@@ -72,7 +80,71 @@ static GM_CLI gm_cli =
     .p_cmd_start = NULL,
     .p_cmd_end = NULL,
     .p_cmd_notice = GM_CLI_DEFAULT_CMD_NITICE,
+    .history_total = 0,
+    .history_index = 0,
+    .history_inquire_index = 0,
+    .history_inquire_count =0,
 };
+
+/*******************************************************************************
+** 函数名称：GM_CLI_GetCommandNext
+** 函数作用：读取下一个命令
+** 输入参数：addr - 当前命令指针
+** 输出参数：命令指针
+** 使用范例：GM_CLI_GetCommandNext();
+** 函数备注：
+*******************************************************************************/
+static const GM_CLI_CMD* GM_CLI_GetCommandNext(const int* const addr)
+{
+#if defined (_MSC_VER)
+    const int* ptr = addr;
+    ptr += sizeof(GM_CLI_CMD) / sizeof(const int);
+    while (ptr < gm_cli.p_cmd_end)
+    {
+        if ((*ptr) != 0)
+        {
+            return (const GM_CLI_CMD*)ptr;
+        }
+        ptr++;
+    }
+#elif defined (__IAR_SYSTEMS_ICC__)
+    const int* ptr = (const int*)((int)addr + sizeof(GM_CLI_CMD));
+    if (ptr < gm_cli.p_cmd_end)
+    {
+        return (const GM_CLI_CMD*)ptr;
+    }
+#endif
+
+    return NULL;
+}
+
+/*******************************************************************************
+** 函数名称：GM_CLI_FindCommand
+** 函数作用：命令查找
+** 输入参数：cmd_name - 命令名
+** 输出参数：命令结构体指针
+** 使用样例：GM_CLI_FindCommand("help");
+** 函数备注：
+*******************************************************************************/
+static const GM_CLI_CMD* GM_CLI_FindCommand(const char* const cmd_name)
+{
+    const GM_CLI_CMD* p_ret = NULL;
+    const GM_CLI_CMD* p_temp;
+
+    p_temp = (GM_CLI_CMD*)gm_cli.p_cmd_start;
+
+    while (p_temp != NULL)
+    {
+        if (strcmp(p_temp->name, cmd_name) == 0)
+        {
+            p_ret = p_temp;
+            break;
+        }
+        p_temp = GM_CLI_GetCommandNext((const int*)p_temp);
+    }
+
+    return p_ret;
+}
 
 /*******************************************************************************
 ** 函数名称：GM_CLI_Init
@@ -106,7 +178,7 @@ void GM_CLI_Init(void)
     else
     {
         gm_cli.p_cmd_start = NULL;
-        gm_cli.p_cmd_end = NULL;
+        gm_cli.p_cmd_end   = NULL;
     }
 #elif defined (__IAR_SYSTEMS_ICC__)
     gm_cli.p_cmd_start = (const int*)__section_begin(".gm_cli_cmd_section");
@@ -118,6 +190,11 @@ void GM_CLI_Init(void)
     gm_cli.input_status = GM_CLI_INPUT_WAIT_NORMAL;
     gm_cli.pf_outchar = NULL;
     gm_cli.p_cmd_notice = GM_CLI_DEFAULT_CMD_NITICE;
+
+    memset(gm_cli.line, 0, sizeof(gm_cli.line));
+    memset(gm_cli.printf_str, 0, sizeof(gm_cli.printf_str));
+    memset(gm_cli.backup_str, 0, sizeof(gm_cli.backup_str));
+    memset(gm_cli.history_str, 0, sizeof(gm_cli.history_str));
 }
 
 /*******************************************************************************
@@ -168,58 +245,6 @@ void GM_CLI_Start(void)
 {
     GM_CLI_PutString("\r\n");
     GM_CLI_PutString(gm_cli.p_cmd_notice);
-}
-
-/*******************************************************************************
-** 函数名称：GM_CLI_GetCommandNext
-** 函数作用：读取下一个命令
-** 输入参数：addr - 当前命令指针
-** 输出参数：命令指针
-** 使用范例：GM_CLI_GetCommandNext();
-** 函数备注：
-*******************************************************************************/
-static const GM_CLI_CMD* GM_CLI_GetCommandNext(const int* const addr)
-{
-    const int* ptr = addr;
-    ptr += sizeof(GM_CLI_CMD) / sizeof(const int);
-    while (ptr < gm_cli.p_cmd_end)
-    {
-        if ((*ptr) != 0)
-        {
-            return (const GM_CLI_CMD*)ptr;
-        }
-        ptr++;
-    }
-
-    return NULL;
-}
-
-/*******************************************************************************
-** 函数名称：GM_CLI_FindCommand
-** 函数作用：命令查找
-** 输入参数：cmd_name - 命令名
-** 输出参数：命令结构体指针
-** 使用样例：GM_CLI_FindCommand("help");
-** 函数备注：
-*******************************************************************************/
-static const GM_CLI_CMD* GM_CLI_FindCommand(const char* const cmd_name)
-{
-    const GM_CLI_CMD* p_ret = NULL;
-    const GM_CLI_CMD* p_temp;
-    
-    p_temp = (GM_CLI_CMD*)gm_cli.p_cmd_start;
-
-    while (p_temp != NULL)
-    {
-        if (strcmp(p_temp->name, cmd_name) == 0)
-        {
-            p_ret = p_temp;
-            break;
-        }
-        p_temp = GM_CLI_GetCommandNext((const int*)p_temp);
-    }
-
-    return p_ret;
 }
 
 /*******************************************************************************
@@ -296,8 +321,55 @@ void GM_CLI_Printf(const char* const fmt, ...)
 *******************************************************************************/
 static void GM_CLI_Parse_UpKey(void)
 {
-    // TODO 
-    /* 上翻历史 */
+    int len;
+
+    if (gm_cli.history_total == 0)
+    {
+        /* 无记录 */
+        return;
+    }
+
+    if (gm_cli.history_inquire_count == 0)
+    {
+        /* 从未上翻记录，备份当前输入 */
+        memcpy(gm_cli.backup_str, gm_cli.line, sizeof(gm_cli.line));
+        if (gm_cli.history_index == 0)
+        {
+            gm_cli.history_inquire_index = GM_CLI_HISTORY_LINE_MAX - 1;
+        }
+        else
+        {
+            gm_cli.history_inquire_index = gm_cli.history_index - 1;
+        }
+    }
+    
+    if (gm_cli.history_inquire_count < gm_cli.history_total)
+    {
+        len = gm_cli.input_count - gm_cli.input_cusor;
+        for (int i = 0; i < len; i++)
+        {
+            GM_CLI_PutChar(' ');
+        }
+        for (int i = 0; i < gm_cli.input_count; i++)
+        {
+            GM_CLI_PutString("\b \b");
+        }
+
+        /* 导入历史输入 */
+        memcpy(gm_cli.line, gm_cli.history_str[gm_cli.history_inquire_index], sizeof(gm_cli.line));
+        gm_cli.input_count = strlen(gm_cli.line);
+        gm_cli.input_cusor = gm_cli.input_count;
+        GM_CLI_PutString(gm_cli.line);
+        gm_cli.history_inquire_count++;
+        if (gm_cli.history_inquire_index == 0)
+        {
+            gm_cli.history_inquire_index = GM_CLI_HISTORY_LINE_MAX - 1;
+        }
+        else
+        {
+            gm_cli.history_inquire_index--;
+        }
+    }
 }
 
 /*******************************************************************************
@@ -310,8 +382,52 @@ static void GM_CLI_Parse_UpKey(void)
 *******************************************************************************/
 static void GM_CLI_Parse_DownKey(void)
 {
-    // TODO 
-    /* 下翻历史 */
+    int len;
+
+    if ((gm_cli.history_total == 0) || 
+        (gm_cli.history_inquire_count == 0))
+    {
+        /* 无记录或无上翻 */
+        return;
+    }
+
+    if (gm_cli.history_inquire_count == 1)
+    {
+        gm_cli.history_inquire_count = 0;
+        len = gm_cli.input_count - gm_cli.input_cusor;
+        for (int i = 0; i < len; i++)
+        {
+            GM_CLI_PutChar(' ');
+        }
+        for (int i = 0; i < gm_cli.input_count; i++)
+        {
+            GM_CLI_PutString("\b \b");
+        }
+        /* 恢复备份的输入 */
+        memcpy(gm_cli.line, gm_cli.backup_str, sizeof(gm_cli.line));
+        gm_cli.input_count = strlen(gm_cli.line);
+        gm_cli.input_cusor = gm_cli.input_count;
+        GM_CLI_PutString(gm_cli.line);
+    }
+    else
+    {
+        len = gm_cli.input_count - gm_cli.input_cusor;
+        for (int i = 0; i < len; i++)
+        {
+            GM_CLI_PutChar(' ');
+        }
+        for (int i = 0; i < gm_cli.input_count; i++)
+        {
+            GM_CLI_PutString("\b \b");
+        }
+        /* 取出历史 */
+        memcpy(gm_cli.line, gm_cli.history_str[gm_cli.history_inquire_index++], sizeof(gm_cli.line));
+        gm_cli.input_count = strlen(gm_cli.line);
+        gm_cli.input_cusor = gm_cli.input_count;
+        GM_CLI_PutString(gm_cli.line);
+        gm_cli.history_inquire_count--;
+        gm_cli.history_inquire_index %= GM_CLI_HISTORY_LINE_MAX;
+    }
 }
 
 /*******************************************************************************
@@ -360,14 +476,14 @@ static void GM_CLI_Parse_RightKey(void)
 static int GM_CLI_Parse_FuncKey(const char ch)
 {
     /* XSHELL终端，超级终端等功能码 */
-    if (ch == (const char)0x1B)
+    if (ch == (char)0x1B)
     {
         gm_cli.input_status = GM_CLI_INPUT_WAIT_SPEC_KEY;
         return 0;
     }
     else if (gm_cli.input_status == GM_CLI_INPUT_WAIT_SPEC_KEY)
     {
-        if (ch == (const char)0x5b)
+        if (ch == (char)0x5b)
         {
             gm_cli.input_status = GM_CLI_INPUT_WAIT_FUNC_KEY;
             return 0;
@@ -379,20 +495,20 @@ static int GM_CLI_Parse_FuncKey(const char ch)
     {
         gm_cli.input_status = GM_CLI_INPUT_WAIT_NORMAL;
 
-        if (ch == (const char)0x41)      /* 上 */
+        if (ch == (char)0x41)      /* 上 */
         {
             return 0;
         }
-        else if (ch == (const char)0x42) /* 下 */
+        else if (ch == (char)0x42) /* 下 */
         {
             return 0;
         }
-        else if (ch == (const char)0x44) /* 左 */
+        else if (ch == (char)0x44) /* 左 */
         {
             GM_CLI_Parse_LeftKey();
             return 0;
         }
-        else if (ch == (const char)0x43) /* 右 */
+        else if (ch == (char)0x43) /* 右 */
         {
             GM_CLI_Parse_RightKey();
             return 0;
@@ -400,7 +516,7 @@ static int GM_CLI_Parse_FuncKey(const char ch)
     }
 
     /* windows命令行功能码 */
-    if (ch == (const char)0xE0)
+    if (ch == (char)0xE0)
     {
         gm_cli.input_status = GM_CLI_INPUT_WAIT_FUNC_KEY1;
         return 0;
@@ -408,22 +524,22 @@ static int GM_CLI_Parse_FuncKey(const char ch)
     else if (gm_cli.input_status == GM_CLI_INPUT_WAIT_FUNC_KEY1)
     {
         gm_cli.input_status = GM_CLI_INPUT_WAIT_NORMAL;
-        if (ch == (const char)0x48)         /* 上 */
+        if (ch == (char)0x48)         /* 上 */
         {
             GM_CLI_Parse_UpKey();
             return 0;
         }
-        else if (ch == (const char)0x50)    /* 下 */
+        else if (ch == (char)0x50)    /* 下 */
         {
             GM_CLI_Parse_DownKey();
             return 0;
         }
-        else if (ch == (const char)0x4B)    /* 左 */
+        else if (ch == (char)0x4B)    /* 左 */
         {
             GM_CLI_Parse_LeftKey();
             return 0;
         }
-        else if (ch == (const char)0x4D)    /* 右 */
+        else if (ch == (char)0x4D)    /* 右 */
         {
             GM_CLI_Parse_RightKey();
             return 0;
@@ -510,9 +626,19 @@ static void GM_CLI_Parse_BackSpace(void)
 static void GM_CLI_Parse_Enter(void)
 {
     int i, argc = 0;
-    char* ptr = NULL;
     char* argv[GM_CLI_CMD_ARGS_NUM_MAX];
     const GM_CLI_CMD* p_cmd;
+
+    /* 备份进入历史记录 */
+    memcpy(gm_cli.history_str[gm_cli.history_index++], gm_cli.line, sizeof(gm_cli.line));
+    gm_cli.history_index %= GM_CLI_HISTORY_LINE_MAX;
+    if (gm_cli.history_total < GM_CLI_HISTORY_LINE_MAX)
+    {
+        gm_cli.history_total++;
+    }
+    gm_cli.history_inquire_index = 0;
+    gm_cli.history_inquire_count = 0;
+
     /* 回车，处理命令时可能有输出 */
     GM_CLI_PutString("\r\n");
 
@@ -634,8 +760,8 @@ static void GM_CLI_Parse_CommonChar(const char ch)
 void GM_CLI_ParseOneChar(const char ch)
 {
     /* 过滤无效字符 */
-    if ((ch == (const char)0x00) ||
-        (ch == (const char)0xFF))
+    if ((ch == (char)0x00) ||
+        (ch == (char)0xFF))
     {
         return;
     }
@@ -645,14 +771,14 @@ void GM_CLI_ParseOneChar(const char ch)
     {
         return;
     }
-    
+
     /* 字符解析 */
     if (ch == '\t')
     {
         /* Tab */
         GM_CLI_Parse_TabKey();
     }
-    else if ((ch == (const char)0x7F) || (ch == (const char)0x08))
+    else if ((ch == (char)0x7F) || (ch == (char)0x08))
     {
         /* 退格 */
         GM_CLI_Parse_BackSpace();
@@ -679,7 +805,6 @@ void GM_CLI_ParseOneChar(const char ch)
 *******************************************************************************/
 static int GM_CLI_CMD_help(int argc, char* argv[])
 {
-    const GM_CLI_CMD* p_ret = NULL;
     const GM_CLI_CMD* p_temp;
     int   found_flag = 0;
 

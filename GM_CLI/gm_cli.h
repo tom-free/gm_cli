@@ -26,11 +26,13 @@
 #endif
 
 /* 一行的最大输入字符数，包括一个\0，实际需要减一 */
-#define GM_CLI_LINE_CHAR_MAX    1024u
-/* 最长的输入命令参数总数 */
-#define GM_CLI_CMD_ARGS_NUM_MAX 10u
-/* 打印函数buf大小 */
-#define GM_CLI_PRINTF_BUF_MAX   1024u
+#define GM_CLI_LINE_CHAR_MAX            64u
+/* 最长的输入命令参数总数，包括命令本身 */
+#define GM_CLI_CMD_ARGS_NUM_MAX         5u
+/* 打印函数buf大小，需要大于能够打印的最大长度，建议使用打印函数时长度不要过长 */
+#define GM_CLI_PRINTF_BUF_MAX           128u
+/* 最大的备份行数，用于历史记录 */
+#define GM_CLI_HISTORY_LINE_MAX         5u
 
 /* 命令结构 */
 typedef struct
