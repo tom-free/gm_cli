@@ -321,7 +321,7 @@ void GM_CLI_Printf(const char* const fmt, ...)
 *******************************************************************************/
 static void GM_CLI_Parse_UpKey(void)
 {
-    int len;
+    unsigned int len;
 
     if (gm_cli.history_total == 0)
     {
@@ -333,34 +333,14 @@ static void GM_CLI_Parse_UpKey(void)
     {
         /* 从未上翻记录，备份当前输入 */
         memcpy(gm_cli.backup_str, gm_cli.line, sizeof(gm_cli.line));
-        if (gm_cli.history_index == 0)
-        {
-            gm_cli.history_inquire_index = GM_CLI_HISTORY_LINE_MAX - 1;
-        }
-        else
-        {
-            gm_cli.history_inquire_index = gm_cli.history_index - 1;
-        }
+        /* 搜索记录位置设置到当前记录处 */
+        gm_cli.history_inquire_index = gm_cli.history_index;
     }
     
+    /* 查看是否已经搜索完成 */
     if (gm_cli.history_inquire_count < gm_cli.history_total)
     {
-        len = gm_cli.input_count - gm_cli.input_cusor;
-        for (int i = 0; i < len; i++)
-        {
-            GM_CLI_PutChar(' ');
-        }
-        for (int i = 0; i < gm_cli.input_count; i++)
-        {
-            GM_CLI_PutString("\b \b");
-        }
-
-        /* 导入历史输入 */
-        memcpy(gm_cli.line, gm_cli.history_str[gm_cli.history_inquire_index], sizeof(gm_cli.line));
-        gm_cli.input_count = strlen(gm_cli.line);
-        gm_cli.input_cusor = gm_cli.input_count;
-        GM_CLI_PutString(gm_cli.line);
-        gm_cli.history_inquire_count++;
+        /* 搜索编号往前找一个记录编号 */
         if (gm_cli.history_inquire_index == 0)
         {
             gm_cli.history_inquire_index = GM_CLI_HISTORY_LINE_MAX - 1;
@@ -369,6 +349,26 @@ static void GM_CLI_Parse_UpKey(void)
         {
             gm_cli.history_inquire_index--;
         }
+        /* 搜索数量加1 */
+        gm_cli.history_inquire_count++;
+        /* 光标之后的行数据清除掉 */
+        len = gm_cli.input_count - gm_cli.input_cusor;
+        for (unsigned int i = 0; i < len; i++)
+        {
+            GM_CLI_PutChar(' ');
+        }
+        /* 清除所有的行数据 */
+        for (unsigned int i = 0; i < gm_cli.input_count; i++)
+        {
+            GM_CLI_PutString("\b \b");
+        }
+
+        /* 导入历史输入 */
+        memcpy(gm_cli.line, gm_cli.history_str[gm_cli.history_inquire_index], sizeof(gm_cli.line));
+        gm_cli.input_count = (unsigned int)strlen(gm_cli.line);
+        gm_cli.input_cusor = gm_cli.input_count;
+        /* 显示历史记录 */
+        GM_CLI_PutString(gm_cli.line);
     }
 }
 
@@ -382,7 +382,7 @@ static void GM_CLI_Parse_UpKey(void)
 *******************************************************************************/
 static void GM_CLI_Parse_DownKey(void)
 {
-    int len;
+    unsigned int len;
 
     if ((gm_cli.history_total == 0) || 
         (gm_cli.history_inquire_count == 0))
@@ -391,43 +391,38 @@ static void GM_CLI_Parse_DownKey(void)
         return;
     }
 
-    if (gm_cli.history_inquire_count == 1)
+    /* 查询数量减一 */
+    gm_cli.history_inquire_count--;
+    /* 删除当前行内容 */
+    len = gm_cli.input_count - gm_cli.input_cusor;
+    for (unsigned int i = 0; i < len; i++)
     {
-        gm_cli.history_inquire_count = 0;
-        len = gm_cli.input_count - gm_cli.input_cusor;
-        for (int i = 0; i < len; i++)
-        {
-            GM_CLI_PutChar(' ');
-        }
-        for (int i = 0; i < gm_cli.input_count; i++)
-        {
-            GM_CLI_PutString("\b \b");
-        }
+        GM_CLI_PutChar(' ');
+    }
+    for (unsigned int i = 0; i < gm_cli.input_count; i++)
+    {
+        GM_CLI_PutString("\b \b");
+    }
+
+    if (gm_cli.history_inquire_count == 0)
+    {
         /* 恢复备份的输入 */
         memcpy(gm_cli.line, gm_cli.backup_str, sizeof(gm_cli.line));
-        gm_cli.input_count = strlen(gm_cli.line);
-        gm_cli.input_cusor = gm_cli.input_count;
-        GM_CLI_PutString(gm_cli.line);
     }
     else
     {
-        len = gm_cli.input_count - gm_cli.input_cusor;
-        for (int i = 0; i < len; i++)
-        {
-            GM_CLI_PutChar(' ');
-        }
-        for (int i = 0; i < gm_cli.input_count; i++)
-        {
-            GM_CLI_PutString("\b \b");
-        }
-        /* 取出历史 */
-        memcpy(gm_cli.line, gm_cli.history_str[gm_cli.history_inquire_index++], sizeof(gm_cli.line));
-        gm_cli.input_count = strlen(gm_cli.line);
-        gm_cli.input_cusor = gm_cli.input_count;
-        GM_CLI_PutString(gm_cli.line);
-        gm_cli.history_inquire_count--;
+        /* 更新索引 */
+        gm_cli.history_inquire_index++;
         gm_cli.history_inquire_index %= GM_CLI_HISTORY_LINE_MAX;
+        /* 取出历史 */
+        memcpy(gm_cli.line, gm_cli.history_str[gm_cli.history_inquire_index], sizeof(gm_cli.line));
     }
+
+    /* 重新更新坐标 */
+    gm_cli.input_count = (unsigned int)strlen(gm_cli.line);
+    gm_cli.input_cusor = gm_cli.input_count;
+    /* 显示输入行 */
+    GM_CLI_PutString(gm_cli.line);
 }
 
 /*******************************************************************************
@@ -625,7 +620,8 @@ static void GM_CLI_Parse_BackSpace(void)
 *******************************************************************************/
 static void GM_CLI_Parse_Enter(void)
 {
-    int i, argc = 0;
+    unsigned int i;
+    int argc = 0;
     char* argv[GM_CLI_CMD_ARGS_NUM_MAX];
     const GM_CLI_CMD* p_cmd;
 
@@ -864,7 +860,7 @@ GM_CLI_CMD_EXPORT(help, "help [cmd] -- list the command and usage", GM_CLI_CMD_h
 ** 使用范例：导出到系统，搜索到指令自动执行
 ** 函数备注：
 *******************************************************************************/
-int GM_CLI_CMD_test(int argc, char* argv[])
+static int GM_CLI_CMD_test(int argc, char* argv[])
 {
     GM_CLI_Printf("cmd  -> %s\r\n", argv[0]);
     for (int i = 1; i < argc; i++)

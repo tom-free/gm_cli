@@ -32,7 +32,7 @@
 /* 打印函数buf大小，需要大于能够打印的最大长度，建议使用打印函数时长度不要过长 */
 #define GM_CLI_PRINTF_BUF_MAX           128u
 /* 最大的备份行数，用于历史记录 */
-#define GM_CLI_HISTORY_LINE_MAX         5u
+#define GM_CLI_HISTORY_LINE_MAX         10u
 
 /* 命令结构 */
 typedef struct
