@@ -37,7 +37,7 @@ static const GM_CLI_CMD __gm_cli_cmd_end =
 #endif  /* _MSC_VER */
 
 /* 默认命令提示符 */
-#define GM_CLI_DEFAULT_CMD_NITICE   "[General CLI] > "
+#define GM_CLI_DEFAULT_CMD_PROMPT   "[General CLI] > "
 
 /* 输入状态定义 */
 typedef enum
@@ -45,7 +45,9 @@ typedef enum
     GM_CLI_INPUT_WAIT_NORMAL,       /* 等待正常字符 */
     GM_CLI_INPUT_WAIT_SPEC_KEY,     /* 等待特殊字符 */
     GM_CLI_INPUT_WAIT_FUNC_KEY,     /* 等待功能字符 */
+#if defined (_MSC_VER)
     GM_CLI_INPUT_WAIT_FUNC_KEY1,    /* 等待功能字符1 */
+#endif  /* _MSC_VER */
 } GM_CLI_INPUT_STATUS;
 
 /* CLI管理器 */
@@ -79,7 +81,7 @@ static GM_CLI gm_cli =
     .pf_outchar = NULL,
     .p_cmd_start = NULL,
     .p_cmd_end = NULL,
-    .p_cmd_notice = GM_CLI_DEFAULT_CMD_NITICE,
+    .p_cmd_notice = GM_CLI_DEFAULT_CMD_PROMPT,
     .history_total = 0,
     .history_index = 0,
     .history_inquire_index = 0,
@@ -189,7 +191,7 @@ void GM_CLI_Init(void)
     gm_cli.input_cusor = 0;
     gm_cli.input_status = GM_CLI_INPUT_WAIT_NORMAL;
     gm_cli.pf_outchar = NULL;
-    gm_cli.p_cmd_notice = GM_CLI_DEFAULT_CMD_NITICE;
+    gm_cli.p_cmd_notice = GM_CLI_DEFAULT_CMD_PROMPT;
 
     memset(gm_cli.line, 0, sizeof(gm_cli.line));
     memset(gm_cli.printf_str, 0, sizeof(gm_cli.printf_str));
@@ -214,14 +216,14 @@ void GM_CLI_RegOutCharCallBack(void(*pf_outchar)(const char))
 }
 
 /*******************************************************************************
-** 函数名称：GM_CLI_SetCommandNotice
+** 函数名称：GM_CLI_SetCommandPrompt
 ** 函数作用：设置命令提示符
 ** 输入参数：p_notice - 提示符
 ** 输出参数：无
-** 使用范例：GM_CLI_SetCommandNotice();
+** 使用范例：GM_CLI_SetCommandPrompt();
 ** 函数备注：
 *******************************************************************************/
-void GM_CLI_SetCommandNotice(const char* const p_notice)
+void GM_CLI_SetCommandPrompt(const char* const p_notice)
 {
     if (p_notice != NULL)
     {
@@ -229,7 +231,7 @@ void GM_CLI_SetCommandNotice(const char* const p_notice)
     }
     else
     {
-        gm_cli.p_cmd_notice = GM_CLI_DEFAULT_CMD_NITICE;
+        gm_cli.p_cmd_notice = GM_CLI_DEFAULT_CMD_PROMPT;
     }
 }
 
@@ -510,6 +512,7 @@ static int GM_CLI_Parse_FuncKey(const char ch)
         }
     }
 
+#if defined (_MSC_VER)
     /* windows命令行功能码 */
     if (ch == (char)0xE0)
     {
@@ -540,8 +543,79 @@ static int GM_CLI_Parse_FuncKey(const char ch)
             return 0;
         }
     }
+#endif  /* _MSC_VER */
 
     return -1;
+}
+
+/*******************************************************************************
+** 函数名称：GM_CLI_StrEmptyCheck
+** 函数作用：判断字符串是否空
+** 输入参数：str - 字符串
+** 输出参数：0 - 空，-1 - 非空
+** 使用范例：GM_CLI_StrEmptyCheck(str);
+** 函数备注：
+*******************************************************************************/
+static int GM_CLI_StrEmptyCheck(const char* const str)
+{
+    int i = 0;
+    const char* p_tmp = str;
+    while (*p_tmp)
+    {
+        if ((*p_tmp) != ' ')
+        {
+            return -1;
+        }
+        p_tmp++;
+    }
+    return 0;
+}
+
+/*******************************************************************************
+** 函数名称：GM_CLI_StrCompletion
+** 函数作用：字符串匹配
+** 输入参数：str - 长字符串，substr - 字串
+** 输出参数：长串是否含有字串且从头开始
+** 使用范例：GM_CLI_StrCompletion("Abiao123", Abiao);
+** 函数备注：
+*******************************************************************************/
+static int GM_CLI_StrCompletion(const char* const str, const char* const substr)
+{
+    unsigned int len1 = (unsigned int)strlen(str);
+    unsigned int len2 = (unsigned int)strlen(substr);
+    unsigned int i = 0;
+
+    if (len2 > len1)
+    {
+        return -1;
+    }
+    for (i = 0; i < len2; i++)
+    {
+        if (str[i] != substr[i])
+        {
+            return -1;
+        }
+    }
+    return 0;
+}
+
+/*******************************************************************************
+** 函数名称：GM_CLI_DeleteStartSpace
+** 函数作用：删除开头的空格
+** 输入参数：str - 字符串地址
+** 输出参数：删除后的地址
+** 使用范例：GM_CLI_DeleteStartSpace("    Abiao");
+** 函数备注：
+*******************************************************************************/
+static const char* GM_CLI_DeleteStartSpace(const char* const str)
+{
+    unsigned int i = 0;
+    unsigned int len = (unsigned int)strlen(str);
+    while ((str[i] == ' ') && (str[i] != '\0') && (i < len))
+    {
+        i++;
+    }
+    return (const char*)(str + i);
 }
 
 /*******************************************************************************
@@ -554,8 +628,80 @@ static int GM_CLI_Parse_FuncKey(const char ch)
 *******************************************************************************/
 static void GM_CLI_Parse_TabKey(void)
 {
-    // TODO
-    /* 自动补全 */
+    const GM_CLI_CMD *p_temp, *p_find_first_cmd = NULL;
+    unsigned int find_count = 0, len;
+    const char *p_line_start;
+
+    /* 检测是否是空白行 */
+    if (GM_CLI_StrEmptyCheck(gm_cli.line) == 0)
+    {
+        return;
+    }
+
+    /* 取消前面的空白 */
+    p_line_start = GM_CLI_DeleteStartSpace(gm_cli.line);
+
+    p_temp = (GM_CLI_CMD*)gm_cli.p_cmd_start;
+
+    /* 查询命令 */
+    while (p_temp != NULL)
+    {
+        if (GM_CLI_StrCompletion(p_temp->name, p_line_start) == 0)
+        {
+            if (find_count == 0)
+            {
+                p_find_first_cmd = p_temp;
+            }
+            else if (find_count == 1)
+            {
+                GM_CLI_PutString("\r\n");
+                GM_CLI_PutString(p_find_first_cmd->name);
+                GM_CLI_PutString("\r\n");
+                GM_CLI_PutString(p_temp->name);
+                GM_CLI_PutString("\r\n");
+            }
+            else
+            {
+                GM_CLI_PutString(p_temp->name);
+                GM_CLI_PutString("\r\n");
+            }
+            find_count++;
+        }
+        p_temp = GM_CLI_GetCommandNext((const int*)p_temp);
+    }
+
+    if (find_count == 1)
+    {
+        /* 删除当前行内容 */
+        len = gm_cli.input_count - gm_cli.input_cusor;
+        for (unsigned int i = 0; i < len; i++)
+        {
+            GM_CLI_PutChar(' ');
+        }
+        for (unsigned int i = 0; i < gm_cli.input_count; i++)
+        {
+            GM_CLI_PutString("\b \b");
+        }
+        
+        /* 自动填充行 */
+        memset(gm_cli.line, '\0', sizeof(gm_cli.line));
+        memcpy(gm_cli.line, p_find_first_cmd->name, strlen(p_find_first_cmd->name));
+        /* 重新更新坐标 */
+        gm_cli.input_count = (unsigned int)strlen(gm_cli.line);
+        gm_cli.input_cusor = gm_cli.input_count;
+        /* 显示输入行 */
+        GM_CLI_PutString(gm_cli.line);
+    }
+    else if (find_count > 1)
+    {
+        /* 显示提示符 */
+        GM_CLI_PutString(gm_cli.p_cmd_notice);
+        /* 重新更新坐标 */
+        gm_cli.input_count = (unsigned int)strlen(gm_cli.line);
+        gm_cli.input_cusor = gm_cli.input_count;
+        /* 显示输入行 */
+        GM_CLI_PutString(gm_cli.line);
+    }
 }
 
 /*******************************************************************************
@@ -625,21 +771,22 @@ static void GM_CLI_Parse_Enter(void)
     char* argv[GM_CLI_CMD_ARGS_NUM_MAX];
     const GM_CLI_CMD* p_cmd;
 
-    /* 备份进入历史记录 */
-    memcpy(gm_cli.history_str[gm_cli.history_index++], gm_cli.line, sizeof(gm_cli.line));
-    gm_cli.history_index %= GM_CLI_HISTORY_LINE_MAX;
-    if (gm_cli.history_total < GM_CLI_HISTORY_LINE_MAX)
-    {
-        gm_cli.history_total++;
-    }
-    gm_cli.history_inquire_index = 0;
-    gm_cli.history_inquire_count = 0;
-
     /* 回车，处理命令时可能有输出 */
     GM_CLI_PutString("\r\n");
 
     if (gm_cli.input_count > 0)
     {
+        /* 备份进入历史记录 */
+        memcpy(gm_cli.history_str[gm_cli.history_index++], gm_cli.line, sizeof(gm_cli.line));
+        gm_cli.history_index %= GM_CLI_HISTORY_LINE_MAX;
+        if (gm_cli.history_total < GM_CLI_HISTORY_LINE_MAX)
+        {
+            gm_cli.history_total++;
+        }
+        gm_cli.history_inquire_index = 0;
+        gm_cli.history_inquire_count = 0;
+
+        /* 分析字符串 */
         for (i = 0; i < gm_cli.input_count;)
         {
             /* 跳过空格并替换为0 */

@@ -96,14 +96,14 @@ void GM_CLI_Init(void);
 void GM_CLI_RegOutCharCallBack(void(*pf_outchar)(const char));
 
 /*******************************************************************************
-** 函数名称：GM_CLI_SetCommandNotice
+** 函数名称：GM_CLI_SetCommandPrompt
 ** 函数作用：设置命令提示符
 ** 输入参数：p_notice - 提示符
 ** 输出参数：无
-** 使用范例：GM_CLI_SetCommandNotice();
+** 使用范例：GM_CLI_SetCommandPrompt();
 ** 函数备注：
 *******************************************************************************/
-void GM_CLI_SetCommandNotice(const char* const p_notice);
+void GM_CLI_SetCommandPrompt(const char* const p_notice);
 
 /*******************************************************************************
 ** 函数名称：GM_CLI_Start

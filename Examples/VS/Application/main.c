@@ -35,7 +35,7 @@ int main(int argc, char* argv[])
     /* 注册输出驱动 */
     GM_CLI_RegOutCharCallBack((GM_CLI_OUT_CHAR_CB)_putch);
     /* 设置提示符 */
-    GM_CLI_SetCommandNotice("[VS CLI Simulator] > ");
+    GM_CLI_SetCommandPrompt("[VS CLI Simulator] > ");
     /* 启动CLI */
     GM_CLI_Start();
 
@@ -44,7 +44,9 @@ int main(int argc, char* argv[])
         /* 键盘检测 */
         if (_kbhit())
         {
+            /* 读取字符 */
             ch = _getch();
+            /* 解析字符 */
             GM_CLI_ParseOneChar((char)ch);
         }
     }
