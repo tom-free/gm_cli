@@ -62,10 +62,20 @@ typedef struct
                 .usage   = cmd_usage,                                          \
                 .cb      = cmd_cb,                                             \
             };
-#elif defined(__CC_ARM) || defined(__CLANG_ARM)             /* MDK ARM */
+#elif defined (__CC_ARM) || defined(__CLANG_ARM)             /* MDK ARM */
 
+#elif defined (__GNUC__)
+/* 导出命令 */
+#define GM_CLI_CMD_EXPORT(cmd_name, cmd_usage, cmd_cb)                         \
+        __attribute__((used)) __attribute__((section(".gm_cli_cmd_section$b")))\
+            static const GM_CLI_CMD gm_cli_cmd_##cmd_name =                    \
+            {                                                                  \
+                .name    = #cmd_name,                                          \
+                .usage   = cmd_usage,                                          \
+                .cb      = cmd_cb,                                             \
+            };
 #else
-#error "不支持此编译器"
+#error "not support this compiler"
 #endif
 
 /* 输出字符回调 */

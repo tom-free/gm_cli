@@ -34,6 +34,21 @@ static const GM_CLI_CMD __gm_cli_cmd_end =
     .usage = "end of cli",
     .cb = NULL,
 };
+#elif defined (__GNUC__)
+__attribute__((used)) __attribute__((section(".gm_cli_cmd_section$a")))
+static const GM_CLI_CMD __gm_cli_cmd_begin =
+{
+    .name = "__start",
+    .usage = "start of cli",
+    .cb = NULL,
+};
+__attribute__((used)) __attribute__((section(".gm_cli_cmd_section$c")))
+static const GM_CLI_CMD __gm_cli_cmd_end =
+{
+    .name = "__end",
+    .usage = "end of cli",
+    .cb = NULL,
+};
 #endif  /* _MSC_VER */
 
 /* 默认命令提示符 */
@@ -45,7 +60,7 @@ typedef enum
     GM_CLI_INPUT_WAIT_NORMAL,       /* 等待正常字符 */
     GM_CLI_INPUT_WAIT_SPEC_KEY,     /* 等待特殊字符 */
     GM_CLI_INPUT_WAIT_FUNC_KEY,     /* 等待功能字符 */
-#if defined (_MSC_VER)
+#if defined (_MSC_VER) | defined (__GNUC__)
     GM_CLI_INPUT_WAIT_FUNC_KEY1,    /* 等待功能字符1 */
 #endif  /* _MSC_VER */
 } GM_CLI_INPUT_STATUS;
@@ -109,7 +124,7 @@ static const GM_CLI_CMD* GM_CLI_GetCommandNext(const int* const addr)
         }
         ptr++;
     }
-#elif defined (__IAR_SYSTEMS_ICC__)
+#elif defined (__IAR_SYSTEMS_ICC__) | defined (__GNUC__)
     const int* ptr = (const int*)((int)addr + sizeof(GM_CLI_CMD));
     if (ptr < gm_cli.p_cmd_end)
     {
@@ -158,7 +173,7 @@ static const GM_CLI_CMD* GM_CLI_FindCommand(const char* const cmd_name)
 *******************************************************************************/
 void GM_CLI_Init(void)
 {
-#if defined (_MSC_VER)
+#if defined (_MSC_VER) | defined (__GNUC__)
     unsigned int* ptr_begin, *ptr_end;
 
     /* 找寻起始位置 */
@@ -494,10 +509,12 @@ static int GM_CLI_Parse_FuncKey(const char ch)
 
         if (ch == (char)0x41)      /* 上 */
         {
+            GM_CLI_Parse_UpKey();
             return 0;
         }
         else if (ch == (char)0x42) /* 下 */
         {
+            GM_CLI_Parse_DownKey();
             return 0;
         }
         else if (ch == (char)0x44) /* 左 */
@@ -512,7 +529,7 @@ static int GM_CLI_Parse_FuncKey(const char ch)
         }
     }
 
-#if defined (_MSC_VER)
+#if defined (_MSC_VER) | defined (__GNUC__)
     /* windows命令行功能码 */
     if (ch == (char)0xE0)
     {
@@ -558,7 +575,6 @@ static int GM_CLI_Parse_FuncKey(const char ch)
 *******************************************************************************/
 static int GM_CLI_StrEmptyCheck(const char* const str)
 {
-    int i = 0;
     const char* p_tmp = str;
     while (*p_tmp)
     {
