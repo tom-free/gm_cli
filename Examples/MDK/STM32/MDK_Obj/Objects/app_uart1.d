@@ -1,9 +1,0 @@
-.\objects\app_uart1.o: ..\Application\app_uart1.c
-.\objects\app_uart1.o: D:\Keil_v5\ARM\ARMCC\Bin\..\include\stdio.h
-.\objects\app_uart1.o: D:\Keil_v5\ARM\ARMCC\Bin\..\include\stdarg.h
-.\objects\app_uart1.o: D:\Keil_v5\ARM\ARMCC\Bin\..\include\string.h
-.\objects\app_uart1.o: ..\HAL\hal_uart1.h
-.\objects\app_uart1.o: ..\GM_Type\gm_type.h
-.\objects\app_uart1.o: D:\Keil_v5\ARM\ARMCC\Bin\..\include\stdint.h
-.\objects\app_uart1.o: ..\GM_Queue\gm_queue.h
-.\objects\app_uart1.o: ..\Application\app_uart1.h

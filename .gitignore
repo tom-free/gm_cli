@@ -26,6 +26,11 @@ bld/
 [Bb]in/
 [Oo]bj/
 [Ll]og/
+[Ll]istings/
+[Oo]bjects/
+*.uvguix.TomFree
+*.map
+
 
 # Visual Studio 2015/2017 cache/options directory
 .vs/
