@@ -1,5 +1,4 @@
 VERSION 	 =#V1.0.0
-COMPILE_TIME = $(shell date +"%Y-%M-%d-%H-%M-%S")
 CC			 =gcc
 DEBUG 		 =#-DUSE_DEBUG
 CFLAGS		 =--std=c99 -Wall
@@ -12,7 +11,7 @@ TARGET		 =gm_cli
 
 #links
 $(TARGET):$(OBJ)
-	$(CC) $(OBJ) $(LIB_PATH) $(LIB_NAMES) -o ./$(TARGET)$(VERSION)_$(COMPILE_TIME).exe
+	$(CC) $(OBJ) $(LIB_PATH) $(LIB_NAMES) -o ./$(TARGET)$(VERSION).exe
 	@rm -rf $(OBJ)
 	
 #compile

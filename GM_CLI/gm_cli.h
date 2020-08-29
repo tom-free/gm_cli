@@ -42,7 +42,17 @@ typedef struct
     int(*cb)(int, char*[]); /* 命令执行函数 */
 } GM_CLI_CMD;
 
-#if defined (_MSC_VER)                                      /* 微软Windows */
+#if defined(__CC_ARM) || defined(__CLANG_ARM)          /* ARM C Compiler */
+/* 导出命令 */
+#define GM_CLI_CMD_EXPORT(cmd_name, cmd_usage, cmd_cb)                         \
+        __attribute__((used)) __attribute__((section("gm_cli_cmd_section")))	 \
+            static  const GM_CLI_CMD gm_cli_cmd_##cmd_name =             \
+            {                                                                  \
+                .name    = #cmd_name,                                          \
+                .usage   = cmd_usage,                                          \
+                .cb      = cmd_cb,                                             \
+            };
+#elif defined (_MSC_VER)                                      /* 微软Windows */
 /* 导出命令 */
 #define GM_CLI_CMD_EXPORT(cmd_name, cmd_usage, cmd_cb)                         \
         __declspec(allocate(".gm_cli_cmd_section$b"))                          \
@@ -62,8 +72,6 @@ typedef struct
                 .usage   = cmd_usage,                                          \
                 .cb      = cmd_cb,                                             \
             };
-#elif defined (__CC_ARM) || defined(__CLANG_ARM)             /* MDK ARM */
-
 #elif defined (__GNUC__)
 /* 导出命令 */
 #define GM_CLI_CMD_EXPORT(cmd_name, cmd_usage, cmd_cb)                         \

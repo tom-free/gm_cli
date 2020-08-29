@@ -1,0 +1,215 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Startup">
+      <UniqueIdentifier>{557737f8-f91c-4b40-ad0b-516796187310}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="HAL">
+      <UniqueIdentifier>{fde1336d-bfeb-4468-a1c2-7dc48b285dd9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="FW_Lib">
+      <UniqueIdentifier>{4dd8334c-88e8-4162-88f7-f26b0d734fb7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Platform">
+      <UniqueIdentifier>{29f6f25d-2c91-4818-ba4b-f0844baa7b4b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Application">
+      <UniqueIdentifier>{986964ba-0e11-4cbb-9a73-84f1ddb5bf25}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Core">
+      <UniqueIdentifier>{df958c74-477f-4547-81da-a7fa90af3b53}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="GM_Multikey">
+      <UniqueIdentifier>{d960d8dc-f211-4b6e-ac0b-af47f51aa4da}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="GM_Queue">
+      <UniqueIdentifier>{06b86073-1746-43aa-9f14-1e754ae2ce3f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="GM_Memory">
+      <UniqueIdentifier>{e79a7555-e210-462b-8df0-04c0665147a8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="GM_Timer">
+      <UniqueIdentifier>{eb378ba1-7565-42d1-a72e-a0ec80792916}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\Application\main.c">
+      <Filter>Application</Filter>
+    </ClCompile>
+    <ClCompile Include="..\FW_Lib\src\misc.c">
+      <Filter>FW_Lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\FW_Lib\src\stm32f10x_adc.c">
+      <Filter>FW_Lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\FW_Lib\src\stm32f10x_bkp.c">
+      <Filter>FW_Lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\FW_Lib\src\stm32f10x_can.c">
+      <Filter>FW_Lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\FW_Lib\src\stm32f10x_cec.c">
+      <Filter>FW_Lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\FW_Lib\src\stm32f10x_crc.c">
+      <Filter>FW_Lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\FW_Lib\src\stm32f10x_dac.c">
+      <Filter>FW_Lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\FW_Lib\src\stm32f10x_dbgmcu.c">
+      <Filter>FW_Lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\FW_Lib\src\stm32f10x_dma.c">
+      <Filter>FW_Lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\FW_Lib\src\stm32f10x_exti.c">
+      <Filter>FW_Lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\FW_Lib\src\stm32f10x_flash.c">
+      <Filter>FW_Lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\FW_Lib\src\stm32f10x_fsmc.c">
+      <Filter>FW_Lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\FW_Lib\src\stm32f10x_gpio.c">
+      <Filter>FW_Lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\FW_Lib\src\stm32f10x_i2c.c">
+      <Filter>FW_Lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\FW_Lib\src\stm32f10x_iwdg.c">
+      <Filter>FW_Lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\FW_Lib\src\stm32f10x_pwr.c">
+      <Filter>FW_Lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\FW_Lib\src\stm32f10x_rcc.c">
+      <Filter>FW_Lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\FW_Lib\src\stm32f10x_rtc.c">
+      <Filter>FW_Lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\FW_Lib\src\stm32f10x_sdio.c">
+      <Filter>FW_Lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\FW_Lib\src\stm32f10x_spi.c">
+      <Filter>FW_Lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\FW_Lib\src\stm32f10x_tim.c">
+      <Filter>FW_Lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\FW_Lib\src\stm32f10x_usart.c">
+      <Filter>FW_Lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\FW_Lib\src\stm32f10x_wwdg.c">
+      <Filter>FW_Lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\HAL\hal_uart1.c">
+      <Filter>HAL</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Platform\stm32f10x_it.c">
+      <Filter>Platform</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Platform\system_stm32f10x.c">
+      <Filter>Platform</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Core\core_cm3.c">
+      <Filter>Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\GM_MultiKey\gm_multi_key.c">
+      <Filter>GM_Multikey</Filter>
+    </ClCompile>
+    <ClCompile Include="..\GM_Queue\gm_queue.c">
+      <Filter>GM_Queue</Filter>
+    </ClCompile>
+    <ClCompile Include="..\GM_Memory\heap_1.c">
+      <Filter>GM_Memory</Filter>
+    </ClCompile>
+    <ClCompile Include="..\GM_Memory\heap_2.c">
+      <Filter>GM_Memory</Filter>
+    </ClCompile>
+    <ClCompile Include="..\GM_Memory\heap_3.c">
+      <Filter>GM_Memory</Filter>
+    </ClCompile>
+    <ClCompile Include="..\GM_Memory\heap_4.c">
+      <Filter>GM_Memory</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Application\app_uart1.c">
+      <Filter>Application</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Application\app_led.c">
+      <Filter>Application</Filter>
+    </ClCompile>
+    <ClCompile Include="..\HAL\hal_timer3.c">
+      <Filter>HAL</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Application\app_timer3.c">
+      <Filter>Application</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Application\app_key.c">
+      <Filter>Application</Filter>
+    </ClCompile>
+    <ClCompile Include="..\GM_Timer\gm_timer.c">
+      <Filter>GM_Timer</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\HAL\hal_gpio_bitband.h">
+      <Filter>HAL</Filter>
+    </ClInclude>
+    <ClInclude Include="..\HAL\hal_uart1.h">
+      <Filter>HAL</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Platform\stm32f10x.h">
+      <Filter>Platform</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Platform\stm32f10x_conf.h">
+      <Filter>Platform</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Platform\stm32f10x_it.h">
+      <Filter>Platform</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Platform\system_stm32f10x.h">
+      <Filter>Platform</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Core\core_cm3.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\GM_Queue\gm_queue.h">
+      <Filter>GM_Queue</Filter>
+    </ClInclude>
+    <ClInclude Include="..\GM_Memory\gm_mem.h">
+      <Filter>GM_Memory</Filter>
+    </ClInclude>
+    <ClInclude Include="..\GM_Memory\heap.h">
+      <Filter>GM_Memory</Filter>
+    </ClInclude>
+    <ClInclude Include="..\GM_MultiKey\gm_multi_key.h">
+      <Filter>GM_Multikey</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Application\app_uart1.h">
+      <Filter>Application</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Application\app_led.h">
+      <Filter>Application</Filter>
+    </ClInclude>
+    <ClInclude Include="..\HAL\hal_timer3.h">
+      <Filter>HAL</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Application\app_timer3.h">
+      <Filter>Application</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Application\app_key.h">
+      <Filter>Application</Filter>
+    </ClInclude>
+    <ClInclude Include="..\GM_Timer\gm_timer.h">
+      <Filter>GM_Timer</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\Startup\startup_stm32f10x_md.s">
+      <Filter>Startup</Filter>
+    </None>
+  </ItemGroup>
+</Project>

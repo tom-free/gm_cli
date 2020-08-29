@@ -60,7 +60,7 @@ typedef enum
     GM_CLI_INPUT_WAIT_NORMAL,       /* 等待正常字符 */
     GM_CLI_INPUT_WAIT_SPEC_KEY,     /* 等待特殊字符 */
     GM_CLI_INPUT_WAIT_FUNC_KEY,     /* 等待功能字符 */
-#if defined (_MSC_VER) | defined (__GNUC__)
+#if defined (_MSC_VER) || defined (__GNUC__)
     GM_CLI_INPUT_WAIT_FUNC_KEY1,    /* 等待功能字符1 */
 #endif  /* _MSC_VER */
 } GM_CLI_INPUT_STATUS;
@@ -113,7 +113,13 @@ static GM_CLI gm_cli =
 *******************************************************************************/
 static const GM_CLI_CMD* GM_CLI_GetCommandNext(const int* const addr)
 {
-#if defined (_MSC_VER)
+#if defined (__CC_ARM) || defined (__CLANG_ARM) || defined (__IAR_SYSTEMS_ICC__) || defined (__GNUC__)
+    const int* ptr = (const int*)((int)addr + sizeof(GM_CLI_CMD));
+    if (ptr < gm_cli.p_cmd_end)
+    {
+        return (const GM_CLI_CMD*)ptr;
+    }
+#elif defined (_MSC_VER)
     const int* ptr = addr;
     ptr += sizeof(GM_CLI_CMD) / sizeof(const int);
     while (ptr < gm_cli.p_cmd_end)
@@ -123,12 +129,6 @@ static const GM_CLI_CMD* GM_CLI_GetCommandNext(const int* const addr)
             return (const GM_CLI_CMD*)ptr;
         }
         ptr++;
-    }
-#elif defined (__IAR_SYSTEMS_ICC__) | defined (__GNUC__)
-    const int* ptr = (const int*)((int)addr + sizeof(GM_CLI_CMD));
-    if (ptr < gm_cli.p_cmd_end)
-    {
-        return (const GM_CLI_CMD*)ptr;
     }
 #endif
 
@@ -173,7 +173,12 @@ static const GM_CLI_CMD* GM_CLI_FindCommand(const char* const cmd_name)
 *******************************************************************************/
 void GM_CLI_Init(void)
 {
-#if defined (_MSC_VER) | defined (__GNUC__)
+#if defined(__CC_ARM) || defined(__CLANG_ARM)          /* ARM C Compiler */
+    extern const int gm_cli_cmd_section$$Base;
+    extern const int gm_cli_cmd_section$$Limit;
+    gm_cli.p_cmd_start = (const int*)&gm_cli_cmd_section$$Base;
+    gm_cli.p_cmd_end   = (const int*)&gm_cli_cmd_section$$Limit;
+#elif defined (_MSC_VER)
     unsigned int* ptr_begin, *ptr_end;
 
     /* 找寻起始位置 */
@@ -319,10 +324,10 @@ void GM_CLI_Printf(const char* const fmt, ...)
     va_list ap;
 
     va_start(ap, fmt);
-#if defined (_MSC_VER)
-    vsprintf_s(gm_cli.printf_str, sizeof(gm_cli.printf_str), fmt, ap);
-#else
+#if defined(__CC_ARM) || defined(__CLANG_ARM) || defined(__IAR_SYSTEMS_ICC__) || defined (__GNUC__)
     vsprintf(gm_cli.printf_str, fmt, ap);
+#elif defined (_MSC_VER)
+    vsprintf_s(gm_cli.printf_str, sizeof(gm_cli.printf_str), fmt, ap);
 #endif
     GM_CLI_PutString(gm_cli.printf_str);
     va_end(ap);
@@ -529,7 +534,7 @@ static int GM_CLI_Parse_FuncKey(const char ch)
         }
     }
 
-#if defined (_MSC_VER) | defined (__GNUC__)
+#if defined (_MSC_VER) || defined (__GNUC__)
     /* windows命令行功能码 */
     if (ch == (char)0xE0)
     {
