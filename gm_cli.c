@@ -18,6 +18,7 @@
 #include "string.h"
 #include "stdio.h"
 #include "stdarg.h"
+#include "stdlib.h"
 
 #if (GM_CLI_CC == GM_CLI_CC_VS)
 /* Microsoft VC/C++ 编译器没有找到段起始和终止的操作宏，需要特殊处理 */
@@ -876,10 +877,59 @@ static int gm_cli_internal_cmd_help(int argc, char* argv[])
 }
 /* 导出help命令 */
 GM_CLI_CMD_EXPORT(help,
-                  "help [cmd] -- list the command and usage",
+                  "help [cmd-name] -- list the command and usage",
                   gm_cli_internal_cmd_help);
 /* 设置help的别名'?' */
 GM_CLI_CMD_ALIAS(help, "?");
+
+/* 内部命令-history */
+static int gm_cli_internal_cmd_history(int argc, char* argv[])
+{
+    unsigned int i, count, num;
+
+    if (argc == 1)
+    {
+        num = gm_cli_mgr.history_total;
+    }
+    else if (argc == 2)
+    {
+        count = atoi(argv[1]);
+        if (gm_cli_mgr.history_total > count)
+        {
+            num = count;
+        }
+        else
+        {
+            num = gm_cli_mgr.history_total;
+        }
+    }
+    else
+    {
+        gm_cli_put_str("Too many args! Only support less then 2 args\r\n");
+        return 0;
+    }
+
+    for (i = 0, count = gm_cli_mgr.history_index; i < num; i++)
+    {
+        if (count == 0)
+        {
+            count = GM_CLI_HISTORY_LINE_MAX - 1;
+        }
+        else
+        {
+            count--;
+        }
+        gm_cli_put_str("    ");
+        gm_cli_put_str(gm_cli_mgr.history_str[count]);
+        gm_cli_put_str("\r\n");
+    }
+
+    return 0;
+}
+/* 导出history命令 */
+GM_CLI_CMD_EXPORT(history,
+                  "history [num] -- list the history command",
+                  gm_cli_internal_cmd_history);
 
 /* 内部命令-test */
 static int gm_cli_internal_cmd_test(int argc, char* argv[])
