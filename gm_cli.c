@@ -761,6 +761,7 @@ static void gm_cli_parse_common_char(const char ch)
         {
             gm_cli_mgr.line[gm_cli_mgr.input_cusor + i] = gm_cli_mgr.line[gm_cli_mgr.input_cusor + i - 1];
         }
+        gm_cli_mgr.line[gm_cli_mgr.input_cusor] = ch;
         gm_cli_put_char(ch);
         gm_cli_mgr.input_count++;
         gm_cli_mgr.input_cusor++;
