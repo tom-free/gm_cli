@@ -109,7 +109,7 @@ static const gm_cli_cmd_t* gm_cli_get_next_cmd(const int* const addr)
      (GM_CLI_CC == GM_CLI_CC_IAR_ARM)   || \
      (GM_CLI_CC == GM_CLI_CC_MINGW)     || \
      (GM_CLI_CC == GM_CLI_CC_GCC_LINUX))
-    const int* ptr = (const int*)((int)addr + sizeof(gm_cli_cmd_t));
+    const int* ptr = (const int*)((char*)addr + sizeof(gm_cli_cmd_t));
     if (ptr < gm_cli_mgr.p_cmd_end)
     {
         return (const gm_cli_cmd_t*)ptr;
