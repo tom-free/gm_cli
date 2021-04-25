@@ -36,7 +36,9 @@ static const gm_cli_cmd_t __gm_cli_cmd_end =
     .usage = "end of cli",
     .cb = NULL,
 };
-#elif (GM_CLI_CC == GM_CLI_CC_MINGW)
+#endif
+
+#if (GM_CLI_CC == GM_CLI_CC_MINGW)
 __attribute__((used)) __attribute__((section(".gm_cli_cmd_section$a")))
 static const gm_cli_cmd_t __gm_cli_cmd_begin =
 {
@@ -154,11 +156,16 @@ static const gm_cli_cmd_t* gm_cli_search_cmd(const char* const cmd_name)
 /* 初始化cli管理器 */
 void gm_cli_mgr_init(void)
 {
-#if (GM_CLI_CC == GM_CLI_CC_MDK_ARM) || (GM_CLI_CC == GM_CLI_CC_GCC_LINUX)
+#if (GM_CLI_CC == GM_CLI_CC_MDK_ARM)
     extern const int gm_cli_cmd_section$$Base;
     extern const int gm_cli_cmd_section$$Limit;
     gm_cli_mgr.p_cmd_start = (const int*)&gm_cli_cmd_section$$Base;
     gm_cli_mgr.p_cmd_end   = (const int*)&gm_cli_cmd_section$$Limit;
+#elif  (GM_CLI_CC == GM_CLI_CC_GCC_LINUX)
+    extern const gm_cli_cmd_t gm_cli_cmd_section_start;
+    extern const gm_cli_cmd_t gm_cli_cmd_section_end;
+    gm_cli_mgr.p_cmd_start = (const int*)&gm_cli_cmd_section_start;
+    gm_cli_mgr.p_cmd_end   = (const int*)&gm_cli_cmd_section_end;
 #elif (GM_CLI_CC == GM_CLI_CC_IAR_ARM)
     gm_cli_mgr.p_cmd_start = (const int*)__section_begin(".gm_cli_cmd_section");
     gm_cli_mgr.p_cmd_end = (const int*)__section_end(".gm_cli_cmd_section");

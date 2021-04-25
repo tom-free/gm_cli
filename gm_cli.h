@@ -73,7 +73,7 @@ typedef struct _gm_cli_cmd_t
 #define GM_CLI_STR_CONNECT2(a, b)       a ## b
 #define GM_CLI_STR_CONNECT3(a, b, c)    a ## b ## c
 
-#if (GM_CLI_CC == GM_CLI_CC_MDK_ARM) || (GM_CLI_CC == GM_CLI_CC_GCC_LINUX)
+#if (GM_CLI_CC == GM_CLI_CC_MDK_ARM)
 /* 导出命令 */
 #define GM_CLI_CMD_EXPORT(cmd_name, cmd_usage, cmd_cb)                         \
         __attribute__((used)) __attribute__((section("gm_cli_cmd_section")))   \
@@ -99,7 +99,87 @@ typedef struct _gm_cli_cmd_t
 /* 命令别名 */
 #define GM_CLI_CMD_ALIAS(cmd_name, cmd_alias_str)                              \
         GM_CLI_CMD_ALIAS_NUM(cmd_name, cmd_alias_str, __LINE__)
-#elif (GM_CLI_CC == GM_CLI_CC_VS)
+#endif
+
+#if (GM_CLI_CC == GM_CLI_CC_MDK_C51)
+#endif
+
+#if (GM_CLI_CC == GM_CLI_CC_IAR_ARM)
+/* 定义相关段 */
+#pragma section=".gm_cli_cmd_section"
+/* 导出命令 */
+#define GM_CLI_CMD_EXPORT(cmd_name, cmd_usage, cmd_cb)                         \
+        _Pragma("location = \".gm_cli_cmd_section\"")                          \
+            static __root const gm_cli_cmd_t gm_cli_cmd_##cmd_name =           \
+            {                                                                  \
+                .name    = #cmd_name,                                          \
+                .usage   = cmd_usage,                                          \
+                .cb      = cmd_cb,                                             \
+            };
+#endif
+
+#if (GM_CLI_CC == GM_CLI_CC_IAR_AVR)
+#endif
+
+#if (GM_CLI_CC == GM_CLI_CC_IAR_STM8)
+#endif
+
+#if (GM_CLI_CC == GM_CLI_CC_GCC_LINUX)
+/* 导出命令 */
+#define GM_CLI_CMD_EXPORT(cmd_name, cmd_usage, cmd_cb)                         \
+        __attribute__((used)) __attribute__((section("gm_cli_cmd_section")))   \
+            static const gm_cli_cmd_t                                          \
+            GM_CLI_STR_CONNECT2(gm_cli_cmd_, cmd_name) =                       \
+            {                                                                  \
+                .name    = #cmd_name,                                          \
+                .usage   = cmd_usage,                                          \
+                .cb      = cmd_cb,                                             \
+                .link    = NULL,                                               \
+            };
+/* 命令命别名 */
+#define GM_CLI_CMD_ALIAS_NUM(cmd_name, cmd_alias_str, num)                     \
+        __attribute__((used)) __attribute__((section("gm_cli_cmd_section")))   \
+            static const gm_cli_cmd_t                                          \
+            GM_CLI_STR_CONNECT3(gm_cli_cmd_, cmd_name##_, num) =               \
+            {                                                                  \
+                .name    = cmd_alias_str,                                      \
+                .usage   = NULL,                                               \
+                .cb      = NULL,                                               \
+                .link    = (gm_cli_cmd_t*)&gm_cli_cmd_##cmd_name,              \
+            };
+/* 命令别名 */
+#define GM_CLI_CMD_ALIAS(cmd_name, cmd_alias_str)                              \
+        GM_CLI_CMD_ALIAS_NUM(cmd_name, cmd_alias_str, __LINE__)
+#endif
+
+#if (GM_CLI_CC == GM_CLI_CC_MINGW)
+/* 导出命令 */
+#define GM_CLI_CMD_EXPORT(cmd_name, cmd_usage, cmd_cb)                         \
+        __attribute__((used)) __attribute__((section(".gm_cli_cmd_section$b")))\
+            static const gm_cli_cmd_t                                          \
+            GM_CLI_STR_CONNECT2(gm_cli_ex_cmd_, cmd_name) =                    \
+            {                                                                  \
+                .name    = #cmd_name,                                          \
+                .usage   = cmd_usage,                                          \
+                .cb      = cmd_cb,                                             \
+            };
+/* 命令命别名，需要指定一个编号来区分名称 */
+#define GM_CLI_CMD_ALIAS_NUM(cmd_name, cmd_alias_str, num)                     \
+        __attribute__((used)) __attribute__((section(".gm_cli_cmd_section$b")))\
+            static const gm_cli_cmd_t                                          \
+            GM_CLI_STR_CONNECT3(gm_cli_ex_cmd_, cmd_name##_, num) =            \
+            {                                                                  \
+                .name    = cmd_alias_str,                                      \
+                .usage   = NULL,                                               \
+                .cb      = NULL,                                               \
+                .link    = (gm_cli_cmd_t*)&gm_cli_ex_cmd_##cmd_name,           \
+            };
+/* 命令别名 */
+#define GM_CLI_CMD_ALIAS(cmd_name, cmd_alias_str)                              \
+        GM_CLI_CMD_ALIAS_NUM(cmd_name, cmd_alias_str, __LINE__)
+#endif
+
+#if (GM_CLI_CC == GM_CLI_CC_VS)
 /* 定义三个段，a和c用来作为搜索的起止位置，b用来存放实际命令 */
 #pragma section(".gm_cli_cmd_section$a", read)
 #pragma section(".gm_cli_cmd_section$b", read)
@@ -129,46 +209,6 @@ typedef struct _gm_cli_cmd_t
 /* 命令别名 */
 #define GM_CLI_CMD_ALIAS(cmd_name, cmd_alias_str)                              \
         GM_CLI_CMD_ALIAS_NUM(cmd_name, cmd_alias_str, __LINE__)
-#elif (GM_CLI_CC == GM_CLI_CC_IAR_ARM)
-/* 定义相关段 */
-#pragma section=".gm_cli_cmd_section"
-/* 导出命令 */
-#define GM_CLI_CMD_EXPORT(cmd_name, cmd_usage, cmd_cb)                         \
-        _Pragma("location = \".gm_cli_cmd_section\"")                          \
-            static __root const gm_cli_cmd_t gm_cli_cmd_##cmd_name =           \
-            {                                                                  \
-                .name    = #cmd_name,                                          \
-                .usage   = cmd_usage,                                          \
-                .cb      = cmd_cb,                                             \
-            };
-#elif (GM_CLI_CC == GM_CLI_CC_MINGW)
-/* 导出命令 */
-#define GM_CLI_CMD_EXPORT(cmd_name, cmd_usage, cmd_cb)                         \
-        __attribute__((used)) __attribute__((section(".gm_cli_cmd_section$b")))\
-            static const gm_cli_cmd_t                                          \
-            GM_CLI_STR_CONNECT2(gm_cli_ex_cmd_, cmd_name) =                    \
-            {                                                                  \
-                .name    = #cmd_name,                                          \
-                .usage   = cmd_usage,                                          \
-                .cb      = cmd_cb,                                             \
-            };
-/* 命令命别名，需要指定一个编号来区分名称 */
-#define GM_CLI_CMD_ALIAS_NUM(cmd_name, cmd_alias_str, num)                     \
-        __attribute__((used)) __attribute__((section(".gm_cli_cmd_section$b")))\
-            static const gm_cli_cmd_t                                          \
-            GM_CLI_STR_CONNECT3(gm_cli_ex_cmd_, cmd_name##_, num) =            \
-            {                                                                  \
-                .name    = cmd_alias_str,                                      \
-                .usage   = NULL,                                               \
-                .cb      = NULL,                                               \
-                .link    = (gm_cli_cmd_t*)&gm_cli_ex_cmd_##cmd_name,           \
-            };
-/* 命令别名 */
-#define GM_CLI_CMD_ALIAS(cmd_name, cmd_alias_str)                              \
-        GM_CLI_CMD_ALIAS_NUM(cmd_name, cmd_alias_str, __LINE__)
-#elif (GM_CLI_CC == GM_CLI_CC_IAR_ARM)
-#else
-#error "Can not find the compiler"
 #endif
 
 #ifdef __cplusplus
