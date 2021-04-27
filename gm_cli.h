@@ -6,8 +6,13 @@
 ** 文件备注：
 **
 ** 更新记录：
-**          2020-08-06 -> 创建文件                             <Tom Free 付瑞彪>
-**          2021-03-18 -> 修改宏来适配不同编译器               <Tom Free 付瑞彪>
+**          2020-08-06 -> 创建文件
+**                                                             <Tom Free 付瑞彪>
+**          2021-03-18 -> 修改宏来适配不同编译器
+**                                                             <Tom Free 付瑞彪>
+**          2021-04-27 -> 增加STM8-IAR、ARM-MDK（AC5/AC6）支持，
+**                        优化编译器自动识别
+**                                                             <Tom Free 付瑞彪>
 **
 **              Copyright (c) 2018-2021 付瑞彪 All Rights Reserved
 **
@@ -44,35 +49,54 @@ typedef struct _gm_cli_cmd_t
 #define GM_CLI_CC_VS                8   /* Visual Studio */
 
 /* 编译器自动识别，不能保证100%识别正确，需要不断优化 */
-#if defined (__IAR_SYSTEMS_ICC__)
-#if defined (__ICCARM__)
+#if defined (__IAR_SYSTEMS_ICC__) && defined (__ICCARM__)
+/* IAR for ARM */
 #define GM_CLI_CC                   GM_CLI_CC_IAR_ARM
-#elif defined (__ICCAVR__)
+
+#elif defined (__IAR_SYSTEMS_ICC__) && defined (__ICCAVR__)
+/* IAR for AVR */
 #define GM_CLI_CC                   GM_CLI_CC_IAR_AVR
-#elif defined (__ICCSTM8__)
+
+#elif defined (__IAR_SYSTEMS_ICC__) && defined (__ICCSTM8__)
+/* IAR for STM8 */
 #define GM_CLI_CC                   GM_CLI_CC_IAR_STM8
-#endif  /* __ICCARM__ */
+
 #elif defined (__CC_ARM) || defined (__CLANG_ARM)
+/* MDK for ARM （AC5，采用ARMCC编译器） */
 #define GM_CLI_CC                   GM_CLI_CC_MDK_ARM
+
 #elif defined (__C51__)
+/* MDK for C51 */
 #define GM_CLI_CC                   GM_CLI_CC_MDK_C51
-#elif defined __GNUC__
-#if defined (__WIN32__)
+
+#elif defined (__GNUC__) && defined (__WIN32__)
+/* MinGW （GCC for Windows） */
 #define GM_CLI_CC                   GM_CLI_CC_MINGW
-#elif defined (__linux__)
+
+#elif defined (__GNUC__) && defined (__linux__)
+/* GCC for Linux */
 #define GM_CLI_CC                   GM_CLI_CC_GCC_LINUX
-#endif
-#elif defined(_MSC_VER)
+
+#elif defined (__GNUC__) && defined (__arm__)
+/* MDK for ARM (AC6，采用GCC编译器) */
+#define GM_CLI_CC                   GM_CLI_CC_MDK_ARM
+
+#elif defined (_MSC_VER)
+/* Visual Studio */
 #define GM_CLI_CC                   GM_CLI_CC_VS
+
 #else
+/* 不支持的编译器 */
 #define GM_CLI_CC                   GM_CLI_CC_NULL
-#error "Do not support this compiler"
-#endif  /* __IAR_SYSTEMS_ICC__ */
+/* 非法编译器报错 */
+#error "do not support this compiler"
+#endif
 
 /* 字符串连接 */
 #define GM_CLI_STR_CONNECT2(a, b)       a ## b
 #define GM_CLI_STR_CONNECT3(a, b, c)    a ## b ## c
 
+/* MDK for ARM，支持AC5和AC6 */
 #if (GM_CLI_CC == GM_CLI_CC_MDK_ARM)
 /* 导出命令 */
 #define GM_CLI_CMD_EXPORT(cmd_name, cmd_usage, cmd_cb)                         \
@@ -101,9 +125,11 @@ typedef struct _gm_cli_cmd_t
         GM_CLI_CMD_ALIAS_NUM(cmd_name, cmd_alias_str, __LINE__)
 #endif
 
+/* MDK for C51 */
 #if (GM_CLI_CC == GM_CLI_CC_MDK_C51)
 #endif
 
+/* IAR for STM8/ARM，都是采用ICC编译器，且扩展规则一样 */
 #if ((GM_CLI_CC == GM_CLI_CC_IAR_STM8) || (GM_CLI_CC == GM_CLI_CC_IAR_ARM))
 /* 定义相关段 */
 #pragma section=".gm_cli_cmd_section"
@@ -134,9 +160,11 @@ typedef struct _gm_cli_cmd_t
         GM_CLI_CMD_ALIAS_NUM(cmd_name, cmd_alias_str, __LINE__)
 #endif
 
+/* IAR for AVR，和STM8/ARM编译器有区别，因为存储架构不同，所以扩展规则不同 */
 #if (GM_CLI_CC == GM_CLI_CC_IAR_AVR)
 #endif
 
+/* GCC for Linux */
 #if (GM_CLI_CC == GM_CLI_CC_GCC_LINUX)
 /* 导出命令 */
 #define GM_CLI_CMD_EXPORT(cmd_name, cmd_usage, cmd_cb)                         \
@@ -165,6 +193,7 @@ typedef struct _gm_cli_cmd_t
         GM_CLI_CMD_ALIAS_NUM(cmd_name, cmd_alias_str, __LINE__)
 #endif
 
+/* MinGW，Windows系统下的GCC */
 #if (GM_CLI_CC == GM_CLI_CC_MINGW)
 /* 导出命令 */
 #define GM_CLI_CMD_EXPORT(cmd_name, cmd_usage, cmd_cb)                         \
@@ -192,6 +221,7 @@ typedef struct _gm_cli_cmd_t
         GM_CLI_CMD_ALIAS_NUM(cmd_name, cmd_alias_str, __LINE__)
 #endif
 
+/* Visual Studio */
 #if (GM_CLI_CC == GM_CLI_CC_VS)
 /* 定义三个段，a和c用来作为搜索的起止位置，b用来存放实际命令 */
 #pragma section(".gm_cli_cmd_section$a", read)
