@@ -8,7 +8,7 @@
 ** 更新记录：
 **          2020-08-06 -> 创建文件                             <Tom Free 付瑞彪>
 **          2021-03-18 -> 修改宏来适配不同编译器               <Tom Free 付瑞彪>
-**          
+**
 **              Copyright (c) 2018-2021 付瑞彪 All Rights Reserved
 **
 **       1 Tab == 4 Spaces     UTF-8     ANSI C Language(C99)
@@ -104,24 +104,37 @@ typedef struct _gm_cli_cmd_t
 #if (GM_CLI_CC == GM_CLI_CC_MDK_C51)
 #endif
 
-#if (GM_CLI_CC == GM_CLI_CC_IAR_ARM)
+#if ((GM_CLI_CC == GM_CLI_CC_IAR_STM8) || (GM_CLI_CC == GM_CLI_CC_IAR_ARM))
 /* 定义相关段 */
 #pragma section=".gm_cli_cmd_section"
 /* 导出命令 */
 #define GM_CLI_CMD_EXPORT(cmd_name, cmd_usage, cmd_cb)                         \
         _Pragma("location = \".gm_cli_cmd_section\"")                          \
-            static __root const gm_cli_cmd_t gm_cli_cmd_##cmd_name =           \
+            static __root const gm_cli_cmd_t                                   \
+            GM_CLI_STR_CONNECT2(gm_cli_cmd_, cmd_name) =                       \
             {                                                                  \
                 .name    = #cmd_name,                                          \
                 .usage   = cmd_usage,                                          \
                 .cb      = cmd_cb,                                             \
+                .link    = NULL,                                               \
             };
+        /* 命令命别名 */
+#define GM_CLI_CMD_ALIAS_NUM(cmd_name, cmd_alias_str, num)                     \
+        _Pragma("location = \".gm_cli_cmd_section\"")                          \
+            static __root const gm_cli_cmd_t                                   \
+            GM_CLI_STR_CONNECT3(gm_cli_cmd_, cmd_name##_, num) =               \
+            {                                                                  \
+                .name    = cmd_alias_str,                                      \
+                .usage   = NULL,                                               \
+                .cb      = NULL,                                               \
+                .link    = (gm_cli_cmd_t*)&gm_cli_cmd_##cmd_name,              \
+            };
+/* 命令别名 */
+#define GM_CLI_CMD_ALIAS(cmd_name, cmd_alias_str)                              \
+        GM_CLI_CMD_ALIAS_NUM(cmd_name, cmd_alias_str, __LINE__)
 #endif
 
 #if (GM_CLI_CC == GM_CLI_CC_IAR_AVR)
-#endif
-
-#if (GM_CLI_CC == GM_CLI_CC_IAR_STM8)
 #endif
 
 #if (GM_CLI_CC == GM_CLI_CC_GCC_LINUX)

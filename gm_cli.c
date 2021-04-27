@@ -109,6 +109,7 @@ static const gm_cli_cmd_t* gm_cli_get_next_cmd(const int* const addr)
 {
 #if ((GM_CLI_CC == GM_CLI_CC_MDK_ARM)   || \
      (GM_CLI_CC == GM_CLI_CC_IAR_ARM)   || \
+     (GM_CLI_CC == GM_CLI_CC_IAR_STM8)  || \
      (GM_CLI_CC == GM_CLI_CC_MINGW)     || \
      (GM_CLI_CC == GM_CLI_CC_GCC_LINUX))
     const int* ptr = (const int*)((char*)addr + sizeof(gm_cli_cmd_t));
@@ -166,7 +167,7 @@ void gm_cli_mgr_init(void)
     extern const gm_cli_cmd_t gm_cli_cmd_section_end;
     gm_cli_mgr.p_cmd_start = (const int*)&gm_cli_cmd_section_start;
     gm_cli_mgr.p_cmd_end   = (const int*)&gm_cli_cmd_section_end;
-#elif (GM_CLI_CC == GM_CLI_CC_IAR_ARM)
+#elif ((GM_CLI_CC == GM_CLI_CC_IAR_ARM) || (GM_CLI_CC == GM_CLI_CC_IAR_STM8))
     gm_cli_mgr.p_cmd_start = (const int*)__section_begin(".gm_cli_cmd_section");
     gm_cli_mgr.p_cmd_end = (const int*)__section_end(".gm_cli_cmd_section");
 #elif (GM_CLI_CC == GM_CLI_CC_VS) || (GM_CLI_CC == GM_CLI_CC_MINGW)
@@ -269,7 +270,7 @@ void gm_cli_printf(const char* const fmt, ...)
     va_list ap;
 
     va_start(ap, fmt);
-    
+
 #if (GM_CLI_CC == GM_CLI_CC_VS)
     vsprintf_s(gm_cli_mgr.printf_str, sizeof(gm_cli_mgr.printf_str), fmt, ap);
 #else
@@ -298,7 +299,7 @@ static void gm_cli_parse_up_key(void)
         /* 搜索记录位置设置到当前记录处 */
         gm_cli_mgr.history_inquire_index = gm_cli_mgr.history_index;
     }
-    
+
     /* 查看是否已经搜索完成 */
     if (gm_cli_mgr.history_inquire_count < gm_cli_mgr.history_total)
     {
@@ -339,7 +340,7 @@ static void gm_cli_parse_down_key(void)
 {
     unsigned int len;
 
-    if ((gm_cli_mgr.history_total == 0) || 
+    if ((gm_cli_mgr.history_total == 0) ||
         (gm_cli_mgr.history_inquire_count == 0))
     {
         /* 无记录或无上翻 */
@@ -587,7 +588,7 @@ static void gm_cli_parse_tab_key(void)
         {
             gm_cli_put_str("\b \b");
         }
-        
+
         /* 自动填充行 */
         memset(gm_cli_mgr.line, '\0', sizeof(gm_cli_mgr.line));
         memcpy(gm_cli_mgr.line, p_find_first_cmd->name, strlen(p_find_first_cmd->name));
