@@ -6,12 +6,14 @@
 ** 文件备注：
 **
 ** 更新记录：
-**          2020-08-06 -> 创建文件
+**           2020-08-06 -> 创建文件
 **                                                             <Tom Free 付瑞彪>
-**          2021-03-18 -> 修改宏来适配不同编译器
+**           2021-03-18 -> 修改宏来适配不同编译器
 **                                                             <Tom Free 付瑞彪>
-**          2021-04-27 -> 增加STM8-IAR、ARM-MDK（AC5/AC6）支持，
+**           2021-04-27 -> 增加STM8-IAR、ARM-MDK（AC5/AC6）支持，
 **                        优化编译器自动识别
+**                                                             <Tom Free 付瑞彪>
+**           2021-06-17 -> 增加自动命令注册和静态注册选项
 **                                                             <Tom Free 付瑞彪>
 **
 **              Copyright (c) 2018-2021 付瑞彪 All Rights Reserved
@@ -38,18 +40,23 @@ typedef struct _gm_cli_cmd_t
 } gm_cli_cmd_t;
 
 /* 编译器支持列举 */
-#define GM_CLI_CC_NULL              0   /* 不支持的编译器 */
-#define GM_CLI_CC_MDK_ARM           1   /* MDK for ARM (Keil) */
-#define GM_CLI_CC_MDK_C51           2   /* MDK for C51 (Keil) */
-#define GM_CLI_CC_IAR_ARM           3   /* IAR for ARM */
-#define GM_CLI_CC_IAR_AVR           4   /* IAR for AVR */
-#define GM_CLI_CC_IAR_STM8          5   /* IAR for STM8 */
-#define GM_CLI_CC_GCC_LINUX         6   /* GCC for Linux */
-#define GM_CLI_CC_MINGW             7   /* MinGW (GCC for Windows) */
-#define GM_CLI_CC_VS                8   /* Visual Studio */
+#define GM_CLI_CC_NULL              0x00u   /* 不支持的编译器 */
+#define GM_CLI_CC_MDK_ARM           0x01u   /* MDK for ARM (Keil) */
+#define GM_CLI_CC_MDK_C51           0x02u   /* MDK for C51 (Keil) */
+#define GM_CLI_CC_IAR_ARM           0x03u   /* IAR for ARM */
+#define GM_CLI_CC_IAR_AVR           0x04u   /* IAR for AVR */
+#define GM_CLI_CC_IAR_STM8          0x05u   /* IAR for STM8 */
+#define GM_CLI_CC_GCC_LINUX         0x06u   /* GCC for Linux */
+#define GM_CLI_CC_MINGW             0x07u   /* MinGW (GCC for Windows) */
+#define GM_CLI_CC_VS                0x08u   /* Visual Studio */
+#define GM_CLI_CC_ANY               0xFFu   /* 任意编译器，用于表示静态注册 */
 
 /* 编译器自动识别，不能保证100%识别正确，需要不断优化 */
-#if defined (__IAR_SYSTEMS_ICC__) && defined (__ICCARM__)
+#if (!GM_CLI_CMD_REG_BY_CC_SECTION)
+/* 静态方式注册指令，任意编译器都支持 */
+#define GM_CLI_CC                   GM_CLI_CC_ANY
+
+#elif defined (__IAR_SYSTEMS_ICC__) && defined (__ICCARM__)
 /* IAR for ARM */
 #define GM_CLI_CC                   GM_CLI_CC_IAR_ARM
 
@@ -89,7 +96,7 @@ typedef struct _gm_cli_cmd_t
 /* 不支持的编译器 */
 #define GM_CLI_CC                   GM_CLI_CC_NULL
 /* 非法编译器报错 */
-#error "do not support this compiler"
+#error "do not support this compiler, please use static register command"
 #endif
 
 /* 字符串连接 */
@@ -123,11 +130,11 @@ typedef struct _gm_cli_cmd_t
 /* 命令别名 */
 #define GM_CLI_CMD_ALIAS(cmd_name, cmd_alias_str)                              \
         GM_CLI_CMD_ALIAS_NUM(cmd_name, cmd_alias_str, __LINE__)
-#endif
+#endif  /* GM_CLI_CC == GM_CLI_CC_MDK_ARM */
 
 /* MDK for C51 */
 #if (GM_CLI_CC == GM_CLI_CC_MDK_C51)
-#endif
+#endif  /* GM_CLI_CC == GM_CLI_CC_MDK_C51 */
 
 /* IAR for STM8/ARM，都是采用ICC编译器，且扩展规则一样 */
 #if ((GM_CLI_CC == GM_CLI_CC_IAR_STM8) || (GM_CLI_CC == GM_CLI_CC_IAR_ARM))
@@ -158,11 +165,11 @@ typedef struct _gm_cli_cmd_t
 /* 命令别名 */
 #define GM_CLI_CMD_ALIAS(cmd_name, cmd_alias_str)                              \
         GM_CLI_CMD_ALIAS_NUM(cmd_name, cmd_alias_str, __LINE__)
-#endif
+#endif  /* (GM_CLI_CC == GM_CLI_CC_IAR_STM8) || (GM_CLI_CC == GM_CLI_CC_IAR_ARM) */
 
 /* IAR for AVR，和STM8/ARM编译器有区别，因为存储架构不同，所以扩展规则不同 */
 #if (GM_CLI_CC == GM_CLI_CC_IAR_AVR)
-#endif
+#endif  /* GM_CLI_CC == GM_CLI_CC_IAR_AVR */
 
 /* GCC for Linux */
 #if (GM_CLI_CC == GM_CLI_CC_GCC_LINUX)
@@ -191,7 +198,7 @@ typedef struct _gm_cli_cmd_t
 /* 命令别名 */
 #define GM_CLI_CMD_ALIAS(cmd_name, cmd_alias_str)                              \
         GM_CLI_CMD_ALIAS_NUM(cmd_name, cmd_alias_str, __LINE__)
-#endif
+#endif  /* GM_CLI_CC == GM_CLI_CC_GCC_LINUX */
 
 /* MinGW，Windows系统下的GCC */
 #if (GM_CLI_CC == GM_CLI_CC_MINGW)
@@ -219,7 +226,7 @@ typedef struct _gm_cli_cmd_t
 /* 命令别名 */
 #define GM_CLI_CMD_ALIAS(cmd_name, cmd_alias_str)                              \
         GM_CLI_CMD_ALIAS_NUM(cmd_name, cmd_alias_str, __LINE__)
-#endif
+#endif  /* GM_CLI_CC == GM_CLI_CC_MINGW */
 
 /* Visual Studio */
 #if (GM_CLI_CC == GM_CLI_CC_VS)
@@ -252,7 +259,26 @@ typedef struct _gm_cli_cmd_t
 /* 命令别名 */
 #define GM_CLI_CMD_ALIAS(cmd_name, cmd_alias_str)                              \
         GM_CLI_CMD_ALIAS_NUM(cmd_name, cmd_alias_str, __LINE__)
-#endif
+#endif  /* GM_CLI_CC == GM_CLI_CC_VS */
+
+/* 静态方式注册，全部编译器均可以使用 */
+#if (GM_CLI_CC == GM_CLI_CC_ANY)
+/* 以下宏用于兼容导出方式，免得需要手动删除代码 */
+#define GM_CLI_CMD_EXPORT(cmd_name, cmd_usage, cmd_cb)
+#define GM_CLI_CMD_ALIAS_NUM(cmd_name, cmd_alias_str, num)
+#define GM_CLI_CMD_ALIAS(cmd_name, cmd_alias_str)
+
+/* 静态命令表，注意，结尾需要使用一个全部为NULL指针的元素来结束命令表 */
+extern const gm_cli_cmd_t gm_cli_static_cmds[];
+
+/* 以下命令需要用户手动放入gm_cli_static_cmds中 */
+/* 内部命令-help */
+int gm_cli_internal_cmd_help(int argc, char* argv[]);
+/* 内部命令-history */
+int gm_cli_internal_cmd_history(int argc, char* argv[]);
+/* 内部命令-test */
+int gm_cli_internal_cmd_test(int argc, char* argv[]);
+#endif  /* GM_CLI_CC == GM_CLI_CC_ANY */
 
 #ifdef __cplusplus
 extern "C" {

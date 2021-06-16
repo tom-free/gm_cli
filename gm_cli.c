@@ -4,10 +4,13 @@
 ** 编写作者：Tom Free 付瑞彪
 ** 编写时间：2020-08-09
 ** 文件备注：
-**
 ** 更新记录：
-**          2020-08-09 -> 创建文件                             <Tom Free 付瑞彪>
-**          2021-03-18 -> 修改宏来适配不同编译器               <Tom Free 付瑞彪>
+**           2020-08-09 -> 创建文件
+**                                                             <Tom Free 付瑞彪>
+**           2021-03-18 -> 修改宏来适配不同编译器
+**                                                             <Tom Free 付瑞彪>
+**           2021-06-17 -> 增加自动命令注册和静态注册选项
+**                                                             <Tom Free 付瑞彪>
 **
 **              Copyright (c) 2018-2021 付瑞彪 All Rights Reserved
 **
@@ -36,7 +39,7 @@ static const gm_cli_cmd_t __gm_cli_cmd_end =
     .usage = "end of cli",
     .cb = NULL,
 };
-#endif
+#endif  /* GM_CLI_CC == GM_CLI_CC_VS */
 
 #if (GM_CLI_CC == GM_CLI_CC_MINGW)
 __attribute__((used)) __attribute__((section(".gm_cli_cmd_section$a")))
@@ -56,18 +59,19 @@ static const gm_cli_cmd_t __gm_cli_cmd_end =
 #endif  /* GM_CLI_CC == GM_CLI_CC_VS */
 
 /* 输入状态定义 */
-typedef enum _gm_cli_input_status_t
+typedef enum
 {
     GM_CLI_INPUT_WAIT_NORMAL,       /* 等待正常字符 */
     GM_CLI_INPUT_WAIT_SPEC_KEY,     /* 等待特殊字符 */
     GM_CLI_INPUT_WAIT_FUNC_KEY,     /* 等待功能字符 */
-#if (GM_CLI_CC == GM_CLI_CC_VS) || (GM_CLI_CC == GM_CLI_CC_MINGW)
+#if (GM_CLI_CC == GM_CLI_CC_VS) || (GM_CLI_CC == GM_CLI_CC_MINGW) || \
+    ((GM_CLI_CC == GM_CLI_CC_ANY) && defined _MSC_VER)
     GM_CLI_INPUT_WAIT_FUNC_KEY1,    /* 等待功能字符1 */
 #endif
 } gm_cli_input_status_t;
 
 /* CLI管理器 */
-typedef struct _gm_cli_mgr_t
+typedef struct
 {
     char                  line[GM_CLI_LINE_CHAR_MAX];    /* 一行字符串存储 */
     unsigned int          input_count;                   /* 输入的字符数量 */
@@ -107,18 +111,8 @@ static gm_cli_mgr_t gm_cli_mgr =
 /* 读取下一个命令 */
 static const gm_cli_cmd_t* gm_cli_get_next_cmd(const int* const addr)
 {
-#if ((GM_CLI_CC == GM_CLI_CC_MDK_ARM)   || \
-     (GM_CLI_CC == GM_CLI_CC_IAR_ARM)   || \
-     (GM_CLI_CC == GM_CLI_CC_IAR_STM8)  || \
-     (GM_CLI_CC == GM_CLI_CC_MINGW)     || \
-     (GM_CLI_CC == GM_CLI_CC_GCC_LINUX))
-    const int* ptr = (const int*)((char*)addr + sizeof(gm_cli_cmd_t));
-    if (ptr < gm_cli_mgr.p_cmd_end)
-    {
-        return (const gm_cli_cmd_t*)ptr;
-    }
-#elif (GM_CLI_CC == GM_CLI_CC_VS)
-    const int* ptr = addr;
+#if (GM_CLI_CC == GM_CLI_CC_VS)
+    const int *ptr = addr;
     ptr += sizeof(gm_cli_cmd_t) / sizeof(const int);
     while (ptr < gm_cli_mgr.p_cmd_end)
     {
@@ -128,7 +122,13 @@ static const gm_cli_cmd_t* gm_cli_get_next_cmd(const int* const addr)
         }
         ptr++;
     }
-#endif
+#else   /* GM_CLI_CC == GM_CLI_CC_VS */
+    const int *ptr = (const int*)((char*)addr + sizeof(gm_cli_cmd_t));
+    if (ptr < gm_cli_mgr.p_cmd_end)
+    {
+        return (const gm_cli_cmd_t*)ptr;
+    }
+#endif  /* GM_CLI_CC == GM_CLI_CC_VS */
 
     return NULL;
 }
@@ -194,6 +194,14 @@ void gm_cli_mgr_init(void)
         gm_cli_mgr.p_cmd_start = NULL;
         gm_cli_mgr.p_cmd_end   = NULL;
     }
+#elif (GM_CLI_CC == GM_CLI_CC_ANY)
+    gm_cli_mgr.p_cmd_start = (const int*)&gm_cli_static_cmds[0];
+    const gm_cli_cmd_t *ptr = &gm_cli_static_cmds[0];
+    while (ptr->name != NULL) ptr++;
+    gm_cli_mgr.p_cmd_end = (const int*)ptr;
+#else
+    gm_cli_mgr.p_cmd_start = NULL;
+    gm_cli_mgr.p_cmd_end = NULL;
 #endif
 
     gm_cli_mgr.input_count = 0;
@@ -271,7 +279,7 @@ void gm_cli_printf(const char* const fmt, ...)
 
     va_start(ap, fmt);
 
-#if (GM_CLI_CC == GM_CLI_CC_VS)
+#if (GM_CLI_CC == GM_CLI_CC_VS) || ((GM_CLI_CC == GM_CLI_CC_ANY) && defined _MSC_VER)
     vsprintf_s(gm_cli_mgr.printf_str, sizeof(gm_cli_mgr.printf_str), fmt, ap);
 #else
     vsprintf(gm_cli_mgr.printf_str, fmt, ap);
@@ -447,7 +455,8 @@ static int gm_cli_parse_func_key(const char ch)
         }
     }
 
-#if (GM_CLI_CC == GM_CLI_CC_VS) || (GM_CLI_CC == GM_CLI_CC_MINGW)
+#if (GM_CLI_CC == GM_CLI_CC_VS) || (GM_CLI_CC == GM_CLI_CC_MINGW) || \
+    ((GM_CLI_CC == GM_CLI_CC_ANY) && defined _MSC_VER)
     /* windows命令行功能码 */
     if (ch == (char)0xE0)
     {
@@ -820,8 +829,16 @@ void gm_cli_parse_char(const char ch)
     }
 }
 
+#if GM_CLI_CMD_REG_BY_CC_SECTION
+/* 编译器命令导出方式可以防耦合，将函数声明为局部函数 */
+#define CMD_CB_CALL_PREFIX  static
+#else
+/* 静态注册方式需要导出默认命令函数，不能加static */
+#define CMD_CB_CALL_PREFIX
+#endif  /* GM_CLI_CMD_REG_BY_CC_SECTION */
+
 /* 内部命令-help */
-static int gm_cli_internal_cmd_help(int argc, char* argv[])
+CMD_CB_CALL_PREFIX int gm_cli_internal_cmd_help(int argc, char* argv[])
 {
     const gm_cli_cmd_t* p_temp;
     const gm_cli_cmd_t* p_temp1;
@@ -892,7 +909,7 @@ GM_CLI_CMD_EXPORT(help,
 GM_CLI_CMD_ALIAS(help, "?");
 
 /* 内部命令-history */
-static int gm_cli_internal_cmd_history(int argc, char* argv[])
+CMD_CB_CALL_PREFIX int gm_cli_internal_cmd_history(int argc, char* argv[])
 {
     unsigned int i, count, num;
 
@@ -941,7 +958,7 @@ GM_CLI_CMD_EXPORT(history,
                   gm_cli_internal_cmd_history);
 
 /* 内部命令-test */
-static int gm_cli_internal_cmd_test(int argc, char* argv[])
+CMD_CB_CALL_PREFIX int gm_cli_internal_cmd_test(int argc, char* argv[])
 {
     gm_cli_printf("cmd  -> %s\r\n", argv[0]);
     for (int i = 1; i < argc; i++)
