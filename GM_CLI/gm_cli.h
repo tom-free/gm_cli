@@ -15,6 +15,9 @@
 #ifndef __GM_CLI_H__
 #define __GM_CLI_H__
 
+//静态命令行控制宏定义
+#define GM_CLI_USING_STATIC_CMD 1
+
 #if defined(_MSC_VER)
 /* 定义三个段 */
 #pragma section(".gm_cli_cmd_section$a", read)
@@ -33,6 +36,8 @@
 #define GM_CLI_PRINTF_BUF_MAX           128u
 /* 最大的备份行数，用于历史记录 */
 #define GM_CLI_HISTORY_LINE_MAX         10u
+/* 命令字符串最大长度 */
+#define GM_CLI_CMD_NAME_MAX_LENGTH		16u
 
 /* 命令结构 */
 typedef struct
@@ -41,6 +46,8 @@ typedef struct
     char* usage;            /* 使用简洁说明 */
     int(*cb)(int, char*[]); /* 命令执行函数 */
 } GM_CLI_CMD;
+
+#if !GM_CLI_USING_STATIC_CMD
 
 #if defined(__CC_ARM) || defined(__CLANG_ARM)          /* ARM C Compiler */
 /* 导出命令 */
@@ -85,6 +92,8 @@ typedef struct
 #else
 #error "not support this compiler"
 #endif
+#endif
+
 
 /* 输出字符回调 */
 typedef void(*GM_CLI_OUT_CHAR_CB)(const char);
@@ -173,6 +182,19 @@ void GM_CLI_Printf(const char* const fmt, ...);
 ** 函数备注：
 *******************************************************************************/
 void GM_CLI_ParseOneChar(const char ch);
+
+
+#if GM_CLI_USING_STATIC_CMD
+/*******************************************************************************
+** 函数名称：GM_CLI_RegStaticCMDs
+** 函数作用：静态方式注册命令表
+** 输入参数：cmds - 命令表指针
+** 输出参数：无
+** 使用样例：GM_CLI_RegStaticCMDs(&user_cmds[0]);
+** 函数备注：
+*******************************************************************************/
+void GM_CLI_RegStaticCMDs(GM_CLI_CMD *cmds);
+#endif
 
 #ifdef __cplusplus
 }
