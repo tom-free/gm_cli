@@ -23,6 +23,8 @@
 > 7. 带有系统默认命令，可以快速的查询和测试CLI系统</br>
 > 8. 字符的发送采用注册机制，用户可以进行重定向和文件操作，完全自定义</br>
 > 9. 字符的接收完全用户决定，可以进行文件操作或流读取，可以轻松实现脚本解释器的功能</br>
+> 10. 支持静态命令注册功能，只需要用户定义一个全局数组即可</br>
+> 11. 支持多种编译器自动识别生成相应的命令导出宏</br>
 
 ## 计划
 
@@ -33,11 +35,60 @@
 ## 使用说明
 
 1. 准备一个工程，带有字符输入输出功能或模拟数据输入输出功能即可</br>
-1. 下载此代码到工程源码目录</br>
+2. 下载此代码到工程源码目录</br>
 3. 添加 `gm_cli.c` 文件到工程，具体添加方式不同编译器不同</br>
 4. 添加 `gm_cli.h` 所在的目录到编译头文件包含目录，具体添加方式不同编译器不同</br>
-5. 编译代码，解决一些因编译器不同产生的错误或警告，如有没法解决的错误或警告，请查询编译器手册或发起issue到本代码库
-6. main函数while之前或主任务运行之前添加如下初始化代码（your_out_char_cb需要填入自己的字符输出驱动；your_prompt需要填入自定义的提示符，不调用此函数系统采用默认的提示符）
+5. 采用静态命令注册功能需要在用户源文件定义如下数组，注意结尾一定要全部为NULL</br>
+
+```C
+/* 静态命令表 */
+const gm_cli_cmd_t gm_cli_static_cmds[] =
+{
+    {
+        .name  = "help",
+        .usage = "help [cmd-name] -- list the command and usage",
+        .cb    = gm_cli_internal_cmd_help,
+        .link  = NULL,
+    },
+    {
+        .name  = "?",
+        .usage = NULL,
+        .cb    = NULL,
+        .link  = &gm_cli_static_cmds[0],
+    },
+    {
+        .name  = "history",
+        .usage = "history [num] -- list the history command",
+        .cb    = gm_cli_internal_cmd_history,
+        .link  = NULL,
+    },
+    {
+        .name  = "test",
+        .usage = "test [args] -- test the cli",
+        .cb    = gm_cli_internal_cmd_test,
+        .link  = NULL,
+    },
+    /* 下面添加自己的命令 */
+    {
+        .name  = "xxx",
+        .usage = "xxx",
+        .cb    = xxx_cb,
+        .link  = xxx,
+    },
+    ......
+
+    /* 数组末尾一定要以下面的元素结束 */
+    {
+        .name  = NULL,
+        .usage = NULL,
+        .cb    = NULL,
+        .link  = NULL,
+    },
+};
+```
+
+6. 编译代码，解决一些因编译器不同产生的错误或警告，如有没法解决的错误或警告，请查询编译器手册或发起issue到本代码库
+7. main函数while之前或主任务运行之前添加如下初始化代码（your_out_char_cb需要填入自己的字符输出驱动；your_prompt需要填入自定义的提示符，不调用此函数系统采用默认的提示符）
 
 ```C
 /* 初始化CLI管理器 */
@@ -50,7 +101,7 @@ gm_cli_set_cmd_prompt("[your_prompt] > ");
 gm_cli_start();
 ```
 
-7. 初始化后先采用如下代码测试CLI是否正常
+8. 初始化后先采用如下代码测试CLI是否正常
 
 ```C
 const char str[] = "test 1 2 3\n";
@@ -71,7 +122,7 @@ arg2 -> 2
 arg3 -> 3
 ```
 
-7. main函数while中或主任务或建立一个CLI任务，执行以下代码（_kbhit替换成自己的字符输入检测函数，_getch替换成自己的子符读取函数）
+9. main函数while中或主任务或建立一个CLI任务，执行以下代码（_kbhit替换成自己的字符输入检测函数，_getch替换成自己的子符读取函数）
 
 ```C
 /* 键盘检测或数据队列查询等 */
@@ -84,7 +135,7 @@ if (_kbhit())
 }
 ```
 
-8. 编译代码，下载或进入调试，打开相应数据输入终端，按回车键查看是否有提示符输出，可以输入`test`或`help`指令检测CLI是否正常
+10. 编译代码，下载或进入调试，打开相应数据输入终端，按回车键查看是否有提示符输出，可以输入`test`或`help`指令检测CLI是否正常
 
 ## 添加命令
 
@@ -141,7 +192,7 @@ command_alias - 命令别名字符串（需要加双引号，可以包含特殊�
   </tr>
   <tr>
     <td rowspan="2">history</td>
-    <td rowspan="2">-</td>
+    <td rowspan="2">无</td>
     <td>history</td>
     <td>查看全部存储的历史记录</td>
   </tr>
@@ -151,7 +202,7 @@ command_alias - 命令别名字符串（需要加双引号，可以包含特殊�
   </tr>
   <tr>
     <td>test</td>
-    <td>-</td>
+    <td>无</td>
     <td>test [...]</td>
     <td>测试CLI系统是否正常，后接可变长任意参数</td>
   </tr>
