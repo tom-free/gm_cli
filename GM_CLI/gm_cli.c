@@ -18,6 +18,8 @@
 #include "stdio.h"
 #include "stdarg.h"
 
+#if !GM_CLI_USING_STATIC_CMD
+
 #if defined (_MSC_VER)
 /* Microsoft VC/C++ 编译器没有找到段起始和终止的操作宏，需要特殊处理 */
 __declspec(allocate(".gm_cli_cmd_section$a"))
@@ -50,6 +52,10 @@ static const GM_CLI_CMD __gm_cli_cmd_end =
     .cb = NULL,
 };
 #endif  /* _MSC_VER */
+
+#endif
+
+
 
 /* 默认命令提示符 */
 #define GM_CLI_DEFAULT_CMD_PROMPT   "[General CLI] > "
@@ -85,6 +91,9 @@ typedef struct
     unsigned int         history_index;                 /* 历史存储索引 */
     unsigned int         history_inquire_index;         /* 历史查询索引 */
     unsigned int         history_inquire_count;         /* 历史查询数量计数器 */
+#if GM_CLI_USING_STATIC_CMD
+    GM_CLI_CMD           *static_cmds;					/* 静态命令行 */
+#endif
 } GM_CLI;
 
 /* CLI控制 */
@@ -101,6 +110,9 @@ static GM_CLI gm_cli =
     .history_index = 0,
     .history_inquire_index = 0,
     .history_inquire_count =0,
+#if GM_CLI_USING_STATIC_CMD
+	.static_cmds = NULL,
+#endif
 };
 
 /*******************************************************************************
@@ -111,6 +123,10 @@ static GM_CLI gm_cli =
 ** 使用范例：GM_CLI_GetCommandNext();
 ** 函数备注：
 *******************************************************************************/
+
+
+#if !GM_CLI_USING_STATIC_CMD
+
 static const GM_CLI_CMD* GM_CLI_GetCommandNext(const int* const addr)
 {
 #if defined (__CC_ARM) || defined (__CLANG_ARM) || defined (__IAR_SYSTEMS_ICC__) || defined (__GNUC__)
@@ -134,6 +150,7 @@ static const GM_CLI_CMD* GM_CLI_GetCommandNext(const int* const addr)
 
     return NULL;
 }
+#endif
 
 /*******************************************************************************
 ** 函数名称：GM_CLI_FindCommand
@@ -143,6 +160,33 @@ static const GM_CLI_CMD* GM_CLI_GetCommandNext(const int* const addr)
 ** 使用样例：GM_CLI_FindCommand("help");
 ** 函数备注：
 *******************************************************************************/
+#if GM_CLI_USING_STATIC_CMD
+//TODO:此处修改
+static const GM_CLI_CMD* GM_CLI_FindCommand(const char* const cmd_name)
+{
+	unsigned int i = 0;
+	if(gm_cli.static_cmds==NULL)
+	{
+		return NULL;
+	}
+	while (gm_cli.static_cmds[i].cb != NULL)
+	{
+		if (!strcmp(cmd_name, gm_cli.static_cmds[i].name))
+		{
+			return &gm_cli.static_cmds[i];
+		}
+		i++;
+	}
+	return NULL;
+}
+// 注册静态命令行
+
+void GM_CLI_RegStaticCMDs(GM_CLI_CMD *cmds)
+{
+	gm_cli.static_cmds=cmds;
+}
+
+#else
 static const GM_CLI_CMD* GM_CLI_FindCommand(const char* const cmd_name)
 {
     const GM_CLI_CMD* p_ret = NULL;
@@ -162,6 +206,7 @@ static const GM_CLI_CMD* GM_CLI_FindCommand(const char* const cmd_name)
 
     return p_ret;
 }
+#endif
 
 /*******************************************************************************
 ** 函数名称：GM_CLI_Init
@@ -647,6 +692,92 @@ static const char* GM_CLI_DeleteStartSpace(const char* const str)
 ** 使用范例：GM_CLI_Parse_TabKey();
 ** 函数备注：
 *******************************************************************************/
+#if GM_CLI_USING_STATIC_CMD
+static void GM_CLI_Parse_TabKey(void)
+{
+    const GM_CLI_CMD *p_find_first_cmd = NULL;
+    unsigned int find_count = 0, len;
+    const char *p_line_start;
+    unsigned int i = 0;
+
+
+    /* 检测是否是空白行 */
+    if (GM_CLI_StrEmptyCheck(gm_cli.line) == 0)
+    {
+        return;
+    }
+
+    /* 取消前面的空白 */
+    p_line_start = GM_CLI_DeleteStartSpace(gm_cli.line);
+///////////////////////////////////////////////////////////////////
+    //TODO:此处修改
+	if(gm_cli.static_cmds!=NULL)
+	{
+		//遍历所有命令行
+		while (gm_cli.static_cmds[i].cb != NULL)
+		{
+			//开始匹配
+			if(GM_CLI_StrCompletion(gm_cli.static_cmds[i].name,p_line_start)==0)
+			{
+	            if (find_count == 0)
+	            {
+	                p_find_first_cmd = &gm_cli.static_cmds[i];
+	            }
+	            else if (find_count == 1)
+	            {
+	                GM_CLI_PutString("\r\n");
+	                GM_CLI_PutString(p_find_first_cmd->name);
+	                GM_CLI_PutString("\r\n");
+	                GM_CLI_PutString(gm_cli.static_cmds[i].name);
+	                GM_CLI_PutString("\r\n");
+	            }
+	            else
+	            {
+	                GM_CLI_PutString(gm_cli.static_cmds[i].name);
+	                GM_CLI_PutString("\r\n");
+	            }
+				find_count++;
+			}
+			i++;
+		}
+	}
+///////////////////////////////////////////////////////////////////
+    if (find_count == 1)
+    {
+        /* 删除当前行内容 */
+        len = gm_cli.input_count - gm_cli.input_cusor;
+        for (unsigned int i = 0; i < len; i++)
+        {
+            GM_CLI_PutChar(' ');
+        }
+        for (unsigned int i = 0; i < gm_cli.input_count; i++)
+        {
+            GM_CLI_PutString("\b \b");
+        }
+
+        /* 自动填充行 */
+        memset(gm_cli.line, '\0', sizeof(gm_cli.line));
+        memcpy(gm_cli.line, p_find_first_cmd->name, strlen(p_find_first_cmd->name));
+        /* 重新更新坐标 */
+        gm_cli.input_count = (unsigned int)strlen(gm_cli.line);
+        gm_cli.input_cusor = gm_cli.input_count;
+        /* 显示输入行 */
+        GM_CLI_PutString(gm_cli.line);
+    }
+    else if (find_count > 1)
+    {
+        /* 显示提示符 */
+        GM_CLI_PutString(gm_cli.p_cmd_notice);
+        /* 重新更新坐标 */
+        gm_cli.input_count = (unsigned int)strlen(gm_cli.line);
+        gm_cli.input_cusor = gm_cli.input_count;
+        /* 显示输入行 */
+        GM_CLI_PutString(gm_cli.line);
+    }
+}
+
+
+#else
 static void GM_CLI_Parse_TabKey(void)
 {
     const GM_CLI_CMD *p_temp, *p_find_first_cmd = NULL;
@@ -724,6 +855,7 @@ static void GM_CLI_Parse_TabKey(void)
         GM_CLI_PutString(gm_cli.line);
     }
 }
+#endif
 
 /*******************************************************************************
 ** 函数名称：GM_CLI_Parse_BackSpace
@@ -958,6 +1090,9 @@ void GM_CLI_ParseOneChar(const char ch)
     }
 }
 
+
+#if !GM_CLI_USING_STATIC_CMD
+
 /*******************************************************************************
 ** 函数名称：GM_CLI_CMD_help
 ** 函数作用：系统命令帮助指令
@@ -1038,3 +1173,6 @@ static int GM_CLI_CMD_test(int argc, char* argv[])
     return 0;
 }
 GM_CLI_CMD_EXPORT(test, "test [args] -- test the cli", GM_CLI_CMD_test);
+
+#endif
+
